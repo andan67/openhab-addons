@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2010-2021 Contributors to the openHAB project
- *
+ * <p>
  * See the NOTICE file(s) distributed with this work for additional
  * information.
- *
+ * <p>
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0
- *
+ * <p>
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.openhab.binding.sony.internal;
@@ -26,10 +26,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
-import org.openhab.core.thing.ChannelUID;
-import org.openhab.core.thing.Thing;
-import org.openhab.core.thing.ThingStatus;
-import org.openhab.core.thing.ThingStatusDetail;
+import org.openhab.core.thing.*;
 import org.openhab.core.thing.binding.BaseThingHandler;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
@@ -60,6 +57,9 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     /** The retry connection event - will only be created when we are disconnected. */
     private final AtomicReference<@Nullable Future<?>> retryConnection = new AtomicReference<>(null);
 
+    /** The retry counter */
+    private final int RETRY_DELAY = 30;
+
     /** The queue used to cache commands until online */
     private final Queue<CachedCommand> commandQueue = new ConcurrentLinkedQueue<>();
 
@@ -87,14 +87,14 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
 
     /**
      * Called when the thing handler should attempt to refresh state. Note that this method is reentrant.
-     * 
+     *
      * @param initial true if this is the initial refresh state after going online, false otherwise
      */
     protected abstract void refreshState(boolean initial);
 
     /**
      * Returns the configuration cast to the specific type
-     * 
+     *
      * @return a non-null configuration
      */
     protected C getSonyConfig() {
@@ -117,7 +117,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
 
     /**
      * Helper method to determine if we should auto reconnect on a command
-     * 
+     *
      * @return true if auto reconnect is supported, false otherwise
      */
     private boolean isAutoReconnect() {
@@ -134,8 +134,15 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         final boolean autoReconnect = isAutoReconnect();
         if (status == ThingStatus.OFFLINE && autoReconnect) {
             logger.debug("AutoReconnect on - scheduling reconnect and caching: {} {}", channelUID, command);
+
+            // handle power on commands for various thing types directly by WOL
+            // and not by using the protocols through established connections
+            final boolean powerdOn = handlePotentialPowerOnCommand(channelUID, command);
+            if (powerdOn) {
+                logger.info("Sent WOL");
+            }
             commandQueue.add(new CachedCommand(channelUID, command));
-            scheduleReconnect();
+            scheduleReconnect(RETRY_DELAY);
         } else if (status == ThingStatus.UNKNOWN && autoReconnect) {
             logger.debug("AutoReconnect on - waiting for reconnect and caching: {} {}", channelUID, command);
             commandQueue.add(new CachedCommand(channelUID, command));
@@ -145,6 +152,17 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             doHandleCommand(channelUID, command);
         }
     }
+
+    /**
+     * Method to check if command is a power on command.
+     * If applicable, power on will be executed by Wake-on-Lan.
+     *
+     * @param channelUID a non-null channel UID
+     * @param command a non-null command
+     *
+     * @return true if command is power on, otherwise false
+     */
+    protected abstract boolean handlePotentialPowerOnCommand(final ChannelUID channelUID, final Command command);
 
     /**
      * This will execute any cached commands
@@ -168,7 +186,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
 
     /**
      * Internal method to handle a command
-     * 
+     *
      * @param channelUID a non-null channel UID
      * @param command a non-null command
      */
@@ -249,10 +267,25 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     private void scheduleReconnect() {
         final C config = getSonyConfig();
         final Integer retryPolling = config.getRetryPolling();
+        scheduleReconnect(retryPolling);
+    }
 
+    /**
+     * Tries to reconnect to the sony device. The results of the connection should call
+     * {@link #updateStatus(ThingStatus, ThingStatusDetail, String)} and if set to OFFLINE, this method will be called
+     * to schedule another connection attempt
+     *
+     * There is one warning here - if the retryPolling is set lower than how long
+     * it takes to connect, you can get in an infinite loop of the connect getting cancelled for the next retry.
+     *
+     * @param retryPolling the possibly null retry polling interval in seconds
+     *
+     */
+    private void scheduleReconnect(@Nullable Integer retryPolling) {
         if (retryPolling != null && retryPolling > 0) {
             SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!SonyUtil.isInterrupted() && !isRemoved()) {
+                    logger.debug("Do reconnect");
                     doConnect();
                 }
             }, retryPolling, TimeUnit.SECONDS)));
@@ -286,7 +319,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
 
     /**
      * Gets the URL to check the status for
-     * 
+     *
      * @return a non-null URL containing an ipaddress and possibly port
      * @throws MalformedURLException if the url is malformed
      */
@@ -342,6 +375,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     @Override
     public void dispose() {
         super.dispose();
+        logger.debug("dispose()");
         SonyUtil.cancel(refreshState.getAndSet(null));
         SonyUtil.cancel(retryConnection.getAndSet(null));
         SonyUtil.cancel(checkStatus.getAndSet(null));
@@ -363,7 +397,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
 
         /**
          * Creates the cached command
-         * 
+         *
          * @param channelUID a non-null channel UID
          * @param command a non-null command
          */

@@ -44,7 +44,9 @@ import org.openhab.binding.sony.internal.scalarweb.models.ScalarWebService;
 import org.openhab.binding.sony.internal.scalarweb.protocols.ScalarWebLoginProtocol;
 import org.openhab.binding.sony.internal.scalarweb.protocols.ScalarWebProtocol;
 import org.openhab.binding.sony.internal.scalarweb.protocols.ScalarWebProtocolFactory;
+import org.openhab.binding.sony.internal.scalarweb.protocols.ScalarWebSystemProtocol;
 import org.openhab.core.config.core.Configuration;
+import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -216,6 +218,25 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
         Objects.requireNonNull(command, "command cannot be null");
 
         doHandleCommand(channelUID, command);
+    }
+
+    @Override
+    protected boolean handlePotentialPowerOnCommand(final ChannelUID channelUID, final Command command) {
+        final Channel channel = getThing().getChannel(channelUID.getId());
+        if (channel != null) {
+            final ScalarWebChannel scalarChannel = new ScalarWebChannel(channelUID, channel);
+            if (scalarChannel.getService().equals(ScalarWebService.SYSTEM)
+                    && scalarChannel.getCategory().equals(ScalarWebSystemProtocol.POWERSTATUS)) {
+                if (command instanceof OnOffType) {
+                    if (command == OnOffType.ON) {
+                        SonyUtil.sendWakeOnLan(logger, getSonyConfig().getDeviceIpAddress(),
+                                getSonyConfig().getDeviceMacAddress());
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     /**
