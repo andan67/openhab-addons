@@ -47,7 +47,7 @@ import org.osgi.service.component.annotations.Reference;
  * @author Tim Roberts - Initial contribution
  */
 @NonNullByDefault
-@Component(immediate = true, configurationPid = "discovery.sony-ircc")
+@Component(configurationPid = "discovery.sony-ircc")
 public class IrccDiscoveryParticipant extends AbstractDiscoveryParticipant implements UpnpDiscoveryParticipant {
     /**
      * The clientBuilder used in HttpRequest

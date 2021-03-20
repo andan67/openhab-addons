@@ -449,7 +449,7 @@ class ScalarWebAudioProtocol<T extends ThingCallback<String>> extends AbstractSc
         if (VersionUtilities.equals(version, ScalarWebMethod.V1_0)) {
             for (final VolumeInformation_1_0 vi : handleExecute(ScalarWebMethod.GETVOLUMEINFORMATION)
                     .asArray(VolumeInformation_1_0.class)) {
-                final Integer vol = vi.getVolume();
+                final @Nullable Integer vol = vi.getVolume();
                 if (vi != null) {
                     return vol;
                 }
