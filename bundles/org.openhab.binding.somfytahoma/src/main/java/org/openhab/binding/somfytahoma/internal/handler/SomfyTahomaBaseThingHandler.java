@@ -14,9 +14,11 @@ package org.openhab.binding.somfytahoma.internal.handler;
 
 import static org.openhab.binding.somfytahoma.internal.SomfyTahomaBindingConstants.*;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.measure.Unit;
 
@@ -144,16 +146,12 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
         return logger;
     }
 
-    protected boolean isAlwaysOnline() {
-        return false;
-    }
-
     protected @Nullable SomfyTahomaBridgeHandler getBridgeHandler() {
         Bridge localBridge = this.getBridge();
         return localBridge != null ? (SomfyTahomaBridgeHandler) localBridge.getHandler() : null;
     }
 
-    private String getURL() {
+    protected String getURL() {
         return getThing().getConfiguration().get("url") != null ? getThing().getConfiguration().get("url").toString()
                 : "";
     }
@@ -165,7 +163,7 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
     }
 
     private void setUnavailable() {
-        if (ThingStatus.OFFLINE != thing.getStatus() && !isAlwaysOnline()) {
+        if (ThingStatus.OFFLINE != thing.getStatus()) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, UNAVAILABLE);
         }
     }
@@ -178,6 +176,17 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
         SomfyTahomaBridgeHandler handler = getBridgeHandler();
         if (handler != null) {
             handler.sendCommand(url, cmd, param, EXEC_URL + "apply");
+        }
+    }
+
+    protected void sendCommandToSameDevicesInPlace(String cmd) {
+        sendCommandToSameDevicesInPlace(cmd, "[]");
+    }
+
+    protected void sendCommandToSameDevicesInPlace(String cmd, String param) {
+        SomfyTahomaBridgeHandler handler = getBridgeHandler();
+        if (handler != null) {
+            handler.sendCommandToSameDevicesInPlace(url, cmd, param, EXEC_URL + "apply");
         }
     }
 
@@ -229,6 +238,10 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
         if (type > 0 && !typeTable.containsKey(stateName)) {
             typeTable.put(stateName, type);
         }
+    }
+
+    protected Unit<?> getTemperatureUnit() {
+        return Objects.requireNonNull(units.get("Number:Temperature"));
     }
 
     private void updateUnits(List<SomfyTahomaState> attributes) {
@@ -387,12 +400,7 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
     }
 
     private @Nullable SomfyTahomaState getStatusState(List<SomfyTahomaState> states) {
-        for (SomfyTahomaState state : states) {
-            if (STATUS_STATE.equals(state.getName()) && state.getType() == TYPE_STRING) {
-                return state;
-            }
-        }
-        return null;
+        return getState(states, STATUS_STATE, TYPE_STRING);
     }
 
     private void updateThingStatus(@Nullable SomfyTahomaState state) {
@@ -455,5 +463,30 @@ public abstract class SomfyTahomaBaseThingHandler extends BaseThingHandler {
 
     public int toInteger(Command command) {
         return (command instanceof DecimalType) ? ((DecimalType) command).intValue() : 0;
+    }
+
+    public @Nullable BigDecimal toTemperature(Command command) {
+        BigDecimal temperature = null;
+        if (command instanceof QuantityType<?>) {
+            QuantityType<?> quantity = (QuantityType<?>) command;
+            QuantityType<?> convertedQuantity = quantity.toUnit(getTemperatureUnit());
+            if (convertedQuantity != null) {
+                quantity = convertedQuantity;
+            }
+            temperature = quantity.toBigDecimal();
+        } else if (command instanceof DecimalType) {
+            temperature = ((DecimalType) command).toBigDecimal();
+        }
+        return temperature;
+    }
+
+    public static @Nullable SomfyTahomaState getState(List<SomfyTahomaState> states, String stateName,
+            @Nullable Integer stateType) {
+        for (SomfyTahomaState state : states) {
+            if (stateName.equals(state.getName()) && (stateType == null || stateType == state.getType())) {
+                return state;
+            }
+        }
+        return null;
     }
 }
