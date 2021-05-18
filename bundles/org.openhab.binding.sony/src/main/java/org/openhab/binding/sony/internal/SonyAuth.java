@@ -186,7 +186,8 @@ public class SonyAuth {
                 || (result.getDeviceErrorCode() == ScalarWebError.HTTPERROR
                         && httpResponse.getHttpCode() == HttpStatus.SERVICE_UNAVAILABLE_503)
                 || httpResponse.getHttpCode() == HttpStatus.UNAUTHORIZED_401
-                || httpResponse.getHttpCode() == HttpStatus.FORBIDDEN_403) {
+                || httpResponse.getHttpCode() == HttpStatus.FORBIDDEN_403
+                || httpResponse.getHttpCode() == HttpStatus.NOT_FOUND_404) {
             if (registrationUrl != null && !registrationUrl.isEmpty()) {
                 final HttpResponse irccResponse = irccRegister(transport, accessCode);
                 if (irccResponse.getHttpCode() == HttpStatus.OK_200) {
