@@ -17,8 +17,20 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Scanner;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -2888,7 +2900,7 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
                             ScalarWebChannel.createChannelId(chl.getCategory(), chl.getId()) + "_" + thingId + ".csv");
                     if (Files.exists(path)) {
                         try {
-                            // regex to parse csv formatted lines (with limitations
+                            // regex to parse csv formatted lines (with limitations)
                             String regexCSV = ",(?=([^\"]*\"[^\"]*\")*[^\"]*$)";
                             String regexQuotes = "^\"|\"$";
                             final String content = Files.readString(path);
@@ -2900,7 +2912,6 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
                                     final String line = scanner.nextLine();
                                     final String[] values = line.split(regexCSV);
                                     final String dispNum = values[1].trim().replaceAll(regexQuotes, "");
-                                    final String uri = values[3].trim().replaceAll(regexQuotes, "");
                                     final Integer rank = Integer.parseInt(values[4].trim().replaceAll(regexQuotes, ""));
                                     rankMap.put(dispNum, rank);
                                 } catch (final Exception ex) {
@@ -2921,7 +2932,9 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
                         Optional<StateOption> si = Optional.empty();
                         if (dispNum != null && !dispNum.isEmpty() && uri != null && !uri.isEmpty()) {
                             si = Optional.of(new StateOption(dispNum, SonyUtil.defaultIfEmpty(title, dispNum)));
-                            displayNumberUriMap.put(dispNum, uri);
+                            if (displayNumberUriMap != null) {
+                                displayNumberUriMap.put(dispNum, uri);
+                            }
                         }
                         return si;
                     }).filter(Optional::isPresent).map(Optional::get)

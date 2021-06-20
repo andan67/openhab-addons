@@ -52,8 +52,8 @@ public class Notifications {
 
         // note: if empty - set to null. Sony has a bad habit of ignoring
         // the request if one or the other array is an empty array (both can be empty however - go figure)
-        this.enabled = enabled.size() == 0 && disabled.size() > 0 ? null : new ArrayList<>(enabled);
-        this.disabled = enabled.size() > 0 && disabled.size() == 0 ? null : new ArrayList<>(disabled);
+        this.enabled = enabled.isEmpty() && !disabled.isEmpty() ? null : new ArrayList<>(enabled);
+        this.disabled = !enabled.isEmpty() && disabled.isEmpty() ? null : new ArrayList<>(disabled);
     }
 
     /**
