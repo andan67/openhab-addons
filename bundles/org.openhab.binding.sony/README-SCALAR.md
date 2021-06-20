@@ -355,6 +355,25 @@ Example: if you have a source (from the `sources` channel) of `tv:atsct`, a `ps_
 Example: for the XBR-43X830C (TV) - I'd have a channel called `ps_channel-atsct`.
 If I send `5.2` to that channel, the TV would switch station 5.2 (and on the next polling, the associated playing and content channels would be updated to reflect that change).
 
+##### Configurable TV presets
+To ease the selection of a large number of TV preset channels, the channels for selection can be filtered and sorted by use of a configuration file.
+This feature can be enabled by setting the (advanced) thing configuration `Enable Configurable Presets` and saving the new configuration.
+
+If this featured is enabled, then for each (non-empty) TV source  a csv file in the folder `/userdata/config/sony/presets` will be generated after each thing restart. 
+The name of the file is a concatenation of the channel type id and the thing id (e.g. `ps_channel-dvbs_d8d43c4d563d.csv`).
+
+The generated file contains a list of all TV channels of the given source. The last column named `Rank` determines 
+which TV channels should be added to the preset list and in which order. Only the value of this column should be edited as follows:
+
+- `rank < 0`: TV channel is excluded
+- `rank = 0`: TV channel is added to end of preset list
+- `rank > 0`: TV channel is added in the order of the rank value
+
+Channels with same rank value are naturally ordered in the preset list. Initially, the rank value is 0 for all channels.
+
+A refresh of the preset after a change of the csv file can be triggered by selecting the pseudo channel `--REFRESH--` as state option from a UI component that is linked to the according preset channel.
+
+
 #### Device Inputs
 
 The following will be a list of all inputs defined on the device.
