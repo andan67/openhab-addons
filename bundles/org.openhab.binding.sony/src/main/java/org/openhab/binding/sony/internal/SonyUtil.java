@@ -15,7 +15,15 @@ package org.openhab.binding.sony.internal;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -371,14 +379,18 @@ public class SonyUtil {
      * @return null if string is null, TRUE if string represents a true boolean, FALSE otherwise
      */
     public static @Nullable Boolean toBooleanObject(@Nullable String str) {
-        if (str == null)
+        if (str == null) {
             return null;
-        if (str.equalsIgnoreCase("true"))
+        }
+        if ("true".equalsIgnoreCase(str)) {
             return Boolean.TRUE;
-        if (str.equalsIgnoreCase("yes"))
+        }
+        if ("yes".equalsIgnoreCase(str)) {
             return Boolean.TRUE;
-        if (str.equalsIgnoreCase("on"))
+        }
+        if ("on".equalsIgnoreCase(str)) {
             return Boolean.TRUE;
+        }
         return Boolean.FALSE;
     }
 
@@ -393,7 +405,7 @@ public class SonyUtil {
             return false;
         }
         try {
-            long l = Long.parseLong(str);
+            Long.parseLong(str);
         } catch (NumberFormatException nfe) {
             return false;
         }
@@ -411,7 +423,7 @@ public class SonyUtil {
             return false;
         }
         try {
-            double d = Double.parseDouble(str);
+            Double.parseDouble(str);
         } catch (NumberFormatException nfe) {
             return false;
         }
@@ -521,8 +533,9 @@ public class SonyUtil {
 
     public static String join(final String delimiter, final @Nullable String @Nullable [] strArray) {
         // public static String join(final String delimiter, final String[] strArray) {
-        if (strArray == null)
+        if (strArray == null) {
             return "";
+        }
         return Arrays.stream(strArray).map(s -> s == null ? "" : s).collect(Collectors.joining(delimiter));
     }
 
@@ -786,8 +799,9 @@ public class SonyUtil {
      * @param message the message
      */
     public static void validateNotEmpty(final String str, final String message) {
-        if (SonyUtil.isEmpty(str))
+        if (SonyUtil.isEmpty(str)) {
             throw new IllegalArgumentException(message);
+        }
     }
 
     /**

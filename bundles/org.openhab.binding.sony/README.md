@@ -86,7 +86,8 @@ You best action would be to turn the device ON when you are trying to set it up 
 
 1. IRCC/Scalar on Blurays will not be auto discovered if the device is off (however DIAL will be discovered).  
 Both these services are turned off when the device is turned off.
-2. Audio service on certain devices will either be turned off or limited in scope.  
+2. Audio service on certain devices will either be turned off or limited in scope.
+
 If the audio service is off, you will either see no audio channels (volume, etc) or will be missing audio channels (like headphone volume for Bravias)
 
 ### Wireless Interface
@@ -209,6 +210,7 @@ The following is a list of common configuration options for all services
 1. See IP Address Configuration above
 2. Only specify if the device support wake on lan (WOL)
 3. Only specify if the device provides status information.
+
 Set to negative to disable (-1).
 
 ```refresh``` is the time between checking the state of the device. 

@@ -15,7 +15,11 @@ package org.openhab.binding.sony.internal.transports;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.ws.rs.ProcessingException;
@@ -110,11 +114,12 @@ public class SonyAuthFilter implements ClientRequestFilter, ClientResponseFilter
         // logger.debug("Apply filter");
 
         if (!authCookieStore.getAuthCookieForHost(host).getValue().isEmpty()) {
-            logger.debug(authCookieStore.getAuthCookieForHost(host).toString());
+            final NewCookie authCookie = authCookieStore.getAuthCookieForHost(host);
+            logger.debug("Got cookie: {} for host: {}", authCookie, host);
             // Has the cookie expired...
-            final Date expiryDate = authCookieStore.getAuthCookieForHost(host).getExpiry();
+            final Date expiryDate = authCookie.getExpiry();
             if (expiryDate != null && new Date().after(expiryDate)) {
-                logger.debug("expired");
+                logger.debug("Cookie expired");
             } else {
                 authNeeded = false;
             }
