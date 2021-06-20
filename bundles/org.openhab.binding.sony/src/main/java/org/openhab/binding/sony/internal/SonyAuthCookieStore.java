@@ -17,7 +17,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import javax.ws.rs.core.NewCookie;
 
-import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +29,10 @@ import org.slf4j.LoggerFactory;
 @NonNullByDefault
 public class SonyAuthCookieStore {
     private final Logger logger = LoggerFactory.getLogger(SonyAuthCookieStore.class);
-    private static final SonyAuthCookieStore instance = new SonyAuthCookieStore();
+    private static final SonyAuthCookieStore INSTANCE = new SonyAuthCookieStore();
     private static final NewCookie EMPTY_COOKIE = new NewCookie("auth", "");
 
-    private final ConcurrentMap<String, @NonNull NewCookie> hostAuthCookieMap = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, NewCookie> hostAuthCookieMap = new ConcurrentHashMap<>();
 
     /**
      * Gets single instance
@@ -41,7 +40,7 @@ public class SonyAuthCookieStore {
      * @return the instance
      */
     public static SonyAuthCookieStore getInstance() {
-        return instance;
+        return INSTANCE;
     }
 
     /**
@@ -67,7 +66,7 @@ public class SonyAuthCookieStore {
      * @param authCookie the non-null cookie
      */
     public void setAuthCookieForHost(String host, NewCookie authCookie) {
-        // logger.debug("setAuthCookieForHost: host: {} authCookie: {} instance: {}", host, authCookie, instance);
+        logger.debug("setAuthCookieForHost: host: {} authCookie: {} instance: {}", host, authCookie, INSTANCE);
         hostAuthCookieMap.put(host, authCookie);
     }
 }
