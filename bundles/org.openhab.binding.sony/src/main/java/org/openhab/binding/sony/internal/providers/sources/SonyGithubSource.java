@@ -24,7 +24,19 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -554,8 +566,9 @@ public class SonyGithubSource extends AbstractSonySource {
                 final String content = resp.getContent();
                 logger.trace("Got new meta info for etag {}: {}", metaEtag, content);
                 final @Nullable MetaInfo metaInfoFromJson = gson.fromJson(content, MetaInfo.class);
-                if (metaInfoFromJson != null)
+                if (metaInfoFromJson != null) {
                     metaInfo = metaInfoFromJson;
+                }
                 return metaInfo;
             } else if (resp.getHttpCode() == HttpStatus.NOT_MODIFIED_304) {
                 logger.trace("Metainfo was not modified - returning last version from etag {}", metaEtag);
@@ -903,7 +916,7 @@ public class SonyGithubSource extends AbstractSonySource {
             // ... it doesn't exist - get the definition and write it
             // If not found
             // ... add it to the waiting list
-            if (fileName != null && !fileName.isEmpty()) {
+            if (!fileName.isEmpty()) {
                 final File theFile = thingTypePath.resolve(fileName).toFile();
                 if (!theFile.exists()) {
                     try {

@@ -15,7 +15,18 @@ package org.openhab.binding.sony.internal.scalarweb.protocols;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.*;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -518,7 +529,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                     } else if (SonyUtil.isNumber(currValue)) {
                         settingType = GeneralSetting.DOUBLETARGET;
                     } else {
-                        settingType = candidates.size() > 0 ? GeneralSetting.ENUMTARGET : GeneralSetting.STRINGTARGET;
+                        settingType = !candidates.isEmpty() ? GeneralSetting.ENUMTARGET : GeneralSetting.STRINGTARGET;
                     }
                 }
 
@@ -527,7 +538,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
 
                 final String ui = set.getDeviceUIInfo();
                 if (ui == null || ui.isEmpty()) {
-                    if (candidates.size() > 0) {
+                    if (!candidates.isEmpty()) {
                         final GeneralSettingsCandidate candidate = candidates.get(0);
                         if (candidate != null && candidate.getMax() != null && candidate.getMin() != null
                                 && candidate.getStep() != null) {
@@ -540,7 +551,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                 channel.addProperty(PROP_SETTINGTYPE, settingType);
 
                 StateDescriptionFragmentBuilder bld = StateDescriptionFragmentBuilder.create();
-                if (candidates.size() == 0) {
+                if (candidates.isEmpty()) {
                     bld = bld.withReadOnly(Boolean.TRUE);
                 }
 
@@ -550,7 +561,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                 // 3. Both cannot be the same (must be true/false or false/true)
                 // If all three aren't true - revert to an enum target
                 // If they are true - save the actual value used for the boolean (on/off or true/false or yes/no)
-                if (SonyUtil.equals(settingType, GeneralSetting.BOOLEANTARGET) && candidates.size() > 0) {
+                if (SonyUtil.equals(settingType, GeneralSetting.BOOLEANTARGET) && !candidates.isEmpty()) {
                     if (candidates.size() != 2) {
                         settingType = GeneralSetting.ENUMTARGET;
                     } else {
@@ -584,7 +595,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                                     prefix + " " + label, prefix + " for " + label));
                         }
 
-                        if (candidates.size() > 0) {
+                        if (!candidates.isEmpty()) {
                             final GeneralSettingsCandidate candidate = candidates.get(0);
 
                             final Double min = candidate.getMin(), max = candidate.getMax(), step = candidate.getStep();
@@ -628,7 +639,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                                     prefix + " " + label, prefix + " for " + label));
                         }
 
-                        if (candidates.size() > 0) {
+                        if (!candidates.isEmpty()) {
                             final GeneralSettingsCandidate candidate = candidates.get(0);
 
                             final Double min = candidate.getMin(), max = candidate.getMax(), step = candidate.getStep();

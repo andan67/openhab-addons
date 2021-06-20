@@ -20,7 +20,6 @@ import java.util.Set;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
-import org.openhab.binding.sony.internal.transports.SonyTransport;
 import org.openhab.binding.sony.internal.transports.SonyTransportFactory;
 
 /**

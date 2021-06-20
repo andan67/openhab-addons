@@ -144,7 +144,7 @@ public class ScalarWebService implements AutoCloseable {
             // Retrieve the api versions for the service
             versions.addAll(execute(new ScalarWebRequest(ScalarWebMethod.GETVERSIONS, version)).asArray(String.class));
         } catch (final IOException e) {
-            if (e.getMessage().contains(String.valueOf(HttpStatus.NOT_FOUND_404))) {
+            if (e.getMessage() != null && e.getMessage().contains(String.valueOf(HttpStatus.NOT_FOUND_404))) {
                 logger.debug("Could not retrieve method versions - missing method {}: {}", ScalarWebMethod.GETVERSIONS,
                         e.getMessage());
             } else {
