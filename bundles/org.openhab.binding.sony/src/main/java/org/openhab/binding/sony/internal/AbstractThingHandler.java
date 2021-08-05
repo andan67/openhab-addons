@@ -1,4 +1,4 @@
-/**
+/**^
  * Copyright (c) 2010-2021 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
@@ -145,6 +145,8 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             port = urlPort == -1 ? url.getDefaultPort() : urlPort;
             Socket soc = new Socket();
             soc.connect(new InetSocketAddress(ipAddress, port), 5000);
+        } catch (MalformedURLException e) {
+            // handles SimpleIp case where url is just the ip
         } catch (IOException e) {
             logger.debug("Checking connectivity to {}:{} - unsuccessful. Giving up reconnection attempt", ipAddress,
                     port);
@@ -348,7 +350,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         if (retryPolling != null && retryPolling > 0) {
             SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!SonyUtil.isInterrupted() && !isRemoved()) {
-                    logger.debug("Do reconnect");
+                    logger.debug("Do reconnect for {}", thing.getLabel());
                     doReconnect();
                 }
             }, retryPolling, TimeUnit.SECONDS)));
@@ -438,7 +440,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     @Override
     public void dispose() {
         super.dispose();
-        logger.debug("dispose()");
+        logger.debug("Disposing {}", thing.getLabel());
         SonyUtil.cancel(refreshState.getAndSet(null));
         SonyUtil.cancel(retryConnection.getAndSet(null));
         SonyUtil.cancel(checkStatus.getAndSet(null));
