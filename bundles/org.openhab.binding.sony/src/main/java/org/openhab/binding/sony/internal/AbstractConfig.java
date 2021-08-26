@@ -13,6 +13,8 @@
 package org.openhab.binding.sony.internal;
 
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
@@ -71,7 +73,13 @@ public class AbstractConfig {
         try {
             return getDeviceUrl().getHost();
         } catch (final MalformedURLException e) {
-            return null;
+            // check if deviceAddress is just IP/host
+            try {
+                // add dummy protocol
+                return new URI("my://" + deviceAddress).getHost();
+            } catch (URISyntaxException ex) {
+                return null;
+            }
         }
     }
 

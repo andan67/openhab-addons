@@ -31,7 +31,6 @@ import javax.ws.rs.core.Response;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jetty.http.HttpStatus;
-import org.glassfish.jersey.filter.LoggingFilter;
 import org.openhab.binding.sony.internal.SonyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,9 +67,9 @@ public class HttpRequest implements AutoCloseable {
          */
 
         // client = ClientBuilder.newClient().property(CONNECT_TIMEOUT, 15000).property(READ_TIMEOUT, 15000);
-        client = clientBuilder.connectTimeout(15, TimeUnit.SECONDS).readTimeout(15, TimeUnit.SECONDS).build();
+        client = clientBuilder.connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS).build();
         if (logger.isDebugEnabled()) {
-            client.register(new LoggingFilter(new Slf4LoggingAdapter(logger), true));
+            // client.register(new LoggingFilter(new Slf4LoggingAdapter(logger), true));
         }
     }
 
@@ -104,6 +103,7 @@ public class HttpRequest implements AutoCloseable {
                 content.close();
             }
         } catch (ProcessingException | IllegalStateException | IOException e) {
+            logger.debug("Exception in sendGetCommand: {}", e.getMessage());
             return new HttpResponse(HttpStatus.SERVICE_UNAVAILABLE_503, e.getMessage());
         }
     }
