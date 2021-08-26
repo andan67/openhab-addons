@@ -12,7 +12,11 @@
  */
 package org.openhab.binding.sony.internal;
 
+import static java.lang.Math.pow;
+import static java.lang.Math.round;
+
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
@@ -63,8 +67,9 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     private final AtomicReference<@Nullable Future<?>> retryConnection = new AtomicReference<>(null);
 
     /** The delay for trying to reconnect after command has been sent to offline thing */
-    private static final int AUTO_RECONNECT_DELAY = 30;
-    private static final int MAX_AUTO_RECONNECT = 5;
+    private static final int AUTO_RECONNECT_INTERVAL = 2;
+    private static final double AUTO_RECONNECT_MULTIPLIER = 2.0;
+    private static final int AUTO_RECONNECT_MAX_ATTEMPTS = 6;
     private final AtomicInteger autoRetryCount = new AtomicInteger(0);
     private final AtomicBoolean isAutoRetryActive = new AtomicBoolean(false);
 
@@ -119,6 +124,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     @Override
     public void initialize() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
+        logger.debug("Thing initialization is called, trying to connect...");
         SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.submit(this::doConnect)));
     }
 
@@ -127,34 +133,14 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      */
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
-        connect();
-    }
-
-    /**
-     * Helper method to start a reconnection attempt
-     */
-    private void doReconnect() {
-        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Reconnecting ...");
-        String ipAddress = "";
-        int port = 0;
-        try {
-            URL url;
-            url = getCheckStatusUrl();
-            ipAddress = url.getHost();
-            final int urlPort = url.getPort();
-            port = urlPort == -1 ? url.getDefaultPort() : urlPort;
-            Socket soc = new Socket();
-            soc.connect(new InetSocketAddress(ipAddress, port), 5000);
-        } catch (MalformedURLException e) {
-            // handles SimpleIp case where url is just the ip
-        } catch (IOException e) {
-            logger.debug("Checking connectivity to {}:{} - unsuccessful. Giving up reconnection attempt", ipAddress,
-                    port);
+        if (isReachable()) {
+            connect();
+        } else {
+            logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", getDeviceIpAddress());
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                    "Error reconnecting to device: " + e.getMessage());
+                    "Error connecting to device: not reachable");
             return;
         }
-        connect();
     }
 
     /**
@@ -180,7 +166,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             if (powerCommand == PowerCommand.ON) {
                 logger.info("Received power on command when thing is offline - trying to turn on thing via WOL");
             }
-            if (isAutoReconnect()) {
+            if (isAutoReconnect() || powerCommand == PowerCommand.ON) {
                 logger.debug("AutoReconnect on - scheduling reconnect and caching: {} {}", channelUID, command);
                 // do not cache power off commands as this is likely unwanted in case thing is offline but might happen
                 // when using power toggle command to switch on device with power item being in an inconsistent 'ON'
@@ -192,7 +178,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
                 if (!isAutoRetryActive.get()) {
                     logger.debug("Schedule auto reconnect");
                     isAutoRetryActive.set(true);
-                    scheduleReconnect(AUTO_RECONNECT_DELAY);
+                    scheduleReconnect(AUTO_RECONNECT_INTERVAL);
                 }
             }
         } else if (status == ThingStatus.UNKNOWN && autoReconnect) {
@@ -291,9 +277,10 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
                 } else {
                     // Try until maximum number of auto retries are reached.
                     // This might happen when the auto retry delay is too short for the device services to become online
-                    if (autoRetryCount.getAndIncrement() < MAX_AUTO_RECONNECT) {
+                    if (autoRetryCount.getAndIncrement() < AUTO_RECONNECT_MAX_ATTEMPTS) {
                         logger.debug("Schedule auto reconnect counter={}", autoRetryCount.get());
-                        scheduleReconnect(AUTO_RECONNECT_DELAY);
+                        scheduleReconnect((int) round(
+                                AUTO_RECONNECT_INTERVAL * pow(AUTO_RECONNECT_MULTIPLIER, autoRetryCount.get())));
                     } else {
                         // stop auto retry
                         isAutoRetryActive.set(false);
@@ -351,7 +338,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!SonyUtil.isInterrupted() && !isRemoved()) {
                     logger.debug("Do reconnect for {}", thing.getLabel());
-                    doReconnect();
+                    doConnect();
                 }
             }, retryPolling, TimeUnit.SECONDS)));
         } else {
@@ -391,6 +378,35 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     protected URL getCheckStatusUrl() throws MalformedURLException {
         final C config = getSonyConfig();
         return config.getDeviceUrl();
+    }
+
+    /**
+     * Checks if device is reachable
+     * 
+     * @return true if device is reachable, otherweise false
+     */
+    private boolean isReachable() {
+        final C config = getSonyConfig();
+        // check if device is reachable before trying to login
+
+        final String iPAddress = config.getDeviceIpAddress();
+        if (SonyUtil.isEmpty(iPAddress))
+            return false;
+        try {
+            return InetAddress.getByName(iPAddress).isReachable(500);
+        } catch (IOException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Gets the device IP to check if reachable
+     *
+     * @return a potentially null ip address or host name of device
+     */
+    protected @Nullable String getDeviceIpAddress() {
+        final C config = getSonyConfig();
+        return config.getDeviceIpAddress();
     }
 
     /**
