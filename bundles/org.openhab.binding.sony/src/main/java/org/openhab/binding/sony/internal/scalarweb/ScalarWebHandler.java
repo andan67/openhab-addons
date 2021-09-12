@@ -388,6 +388,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to Scalar Web device (may need to turn it on manually)");
         } catch (final Exception e) {
+            logger.debug("Unhandled exception connecting to Scalar Web device: {} ", e.getMessage(), e);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Unhandled exception connecting to Scalar Web device (may need to turn it on manually): "
                             + e.getMessage());
