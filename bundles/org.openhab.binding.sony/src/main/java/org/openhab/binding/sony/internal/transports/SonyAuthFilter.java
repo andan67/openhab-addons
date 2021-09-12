@@ -143,9 +143,14 @@ public class SonyAuthFilter implements ClientRequestFilter, ClientResponseFilter
                 if (newCookies != null) {
                     final NewCookie authCookie = newCookies.get(AUTHCOOKIENAME);
                     if (authCookie != null) {
+                        // create cookie with expiry date using 80% of maxAge given in seconds
+                        final Date expiryDate = new Date(new Date().getTime() + 800L *authCookie.getMaxAge());
+                        final NewCookie newAuthCookieToStore = new NewCookie(
+                                authCookie.toCookie(), authCookie.getComment(), authCookie.getMaxAge(),
+                                expiryDate, authCookie.isSecure(), authCookie.isHttpOnly());
                         logger.debug("Authorization cookie was renewed");
-                        logger.debug("New auth cookie: {} for host: {}", authCookie.getValue(), host);
-                        authCookieStore.setAuthCookieForHost(host, authCookie);
+                        logger.debug("New auth cookie: {} for host: {}", newAuthCookieToStore.getValue(), host);
+                        authCookieStore.setAuthCookieForHost(host, newAuthCookieToStore);
                     } else {
                         logger.debug("No authorization cookie was returned");
                     }
