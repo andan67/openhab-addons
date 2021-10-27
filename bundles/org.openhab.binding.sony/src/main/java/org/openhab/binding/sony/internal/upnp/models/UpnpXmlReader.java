@@ -16,10 +16,12 @@ import java.util.Objects;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.sony.internal.SonyHandlerFactory;
 import org.openhab.binding.sony.internal.SonyUtil;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
+import com.thoughtworks.xstream.security.NoTypePermission;
 
 /**
  * This class represents creates the various XML readers (using XStream) to deserialize various calls.
@@ -47,6 +49,8 @@ public class UpnpXmlReader<T> {
     private UpnpXmlReader(@SuppressWarnings("rawtypes") final Class[] classes) {
         Objects.requireNonNull(classes, "classes cannot be null");
 
+        xstream.addPermission(NoTypePermission.NONE);
+        xstream.allowTypesByWildcard(new String[] { SonyHandlerFactory.class.getPackageName() + ".**" });
         xstream.setClassLoader(getClass().getClassLoader());
         xstream.ignoreUnknownElements();
         xstream.processAnnotations(classes);
