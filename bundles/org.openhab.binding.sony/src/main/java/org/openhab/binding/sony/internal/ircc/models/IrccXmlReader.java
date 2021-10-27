@@ -17,11 +17,13 @@ import java.util.Objects;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.jupnp.UpnpService;
+import org.openhab.binding.sony.internal.SonyHandlerFactory;
 import org.openhab.binding.sony.internal.upnp.models.UpnpServiceList;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
+import com.thoughtworks.xstream.security.NoTypePermission;
 
 /**
  * This class represents creates the various XML readers (using XStream) to deserialize various calls.
@@ -71,6 +73,9 @@ public class IrccXmlReader<T> {
     private IrccXmlReader(@SuppressWarnings("rawtypes") final Class[] classes, final Converter... converters) {
         Objects.requireNonNull(classes, "classes cannot be null");
 
+        // XStream.setupDefaultSecurity(xstream);
+        xstream.addPermission(NoTypePermission.NONE);
+        xstream.allowTypesByWildcard(new String[] { SonyHandlerFactory.class.getPackageName() + ".**" });
         xstream.setClassLoader(getClass().getClassLoader());
         xstream.ignoreUnknownElements();
         xstream.processAnnotations(classes);
