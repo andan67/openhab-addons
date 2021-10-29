@@ -356,6 +356,7 @@
     <module>org.openhab.binding.somneo</module>
     <module>org.openhab.binding.sonnen</module>
     <module>org.openhab.binding.sonos</module>
+    <module>org.openhab.binding.sony</module>
     <module>org.openhab.binding.sonyaudio</module>
     <module>org.openhab.binding.sonyprojector</module>
     <module>org.openhab.binding.souliss</module>
