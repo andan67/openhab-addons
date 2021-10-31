@@ -318,6 +318,9 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
     /** The cached sources by scheme */
     private final ConcurrentMap<String, Set<Source>> stateSources = new ConcurrentHashMap<>();
 
+    /** The source uri to title mapping */
+    private final ConcurrentMap<String, String> sourceUriTitleMap = new ConcurrentHashMap<>();
+
     /** The cached uris by and source display number (used for presets) */
     private final ConcurrentMap<String, ConcurrentMap<String, String>> displayNumberUriMapBySource = new ConcurrentHashMap<>();
 
@@ -1228,9 +1231,14 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
         SonyUtil.validateNotEmpty(uid, "uid cannot be empty");
         // Following finds the source from the uri (radio:fm&content=x to radio:fm)
         // ToDo: Check
-        final String src = getSources().stream()
-                .filter(s -> s.getSource() != null && uid.startsWith(Objects.requireNonNull(s.getSource()))).findFirst()
-                .map(s -> s.getSource()).orElse("");
+        // if source uri map contains the provide uid as key use this to allow state updates conistent with the state
+        // descrrption of the
+        // terminal source channel. This is important for specific sources which uri contains parameters (like
+        // extInput:hdmi?port=1)
+        final String src = sourceUriTitleMap.containsKey(uid) ? uid
+                : getSources().stream()
+                        .filter(s -> s.getSource() != null && uid.startsWith(Objects.requireNonNull(s.getSource())))
+                        .findFirst().map(s -> s.getSource()).orElse("");
         return SonyUtil.defaultIfEmpty(src, uid);
     }
 
@@ -1465,6 +1473,11 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
                             .sorted(Comparator.comparing(a -> SonyUtil.defaultIfEmpty(a.getLabel(), "")))
                             .collect(Collectors.toList());
 
+                    // store full source uris and their title in a global map to allow consistent state updates
+                    sourceUriTitleMap.clear();
+                    for (StateOption option : options) {
+                        sourceUriTitleMap.put(option.getValue(), SonyUtil.defaultIfEmpty(option.getLabel(), ""));
+                    }
                     final String id = getIdForOutput(uri);
                     final ScalarWebChannel cnl = createChannel(TERM_SOURCE, id, uri);
                     final StateDescription sd = StateDescriptionFragmentBuilder.create().withOptions(options).build()
