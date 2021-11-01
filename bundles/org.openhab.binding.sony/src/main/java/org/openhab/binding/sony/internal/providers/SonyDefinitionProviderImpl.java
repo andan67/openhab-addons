@@ -26,8 +26,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import javax.ws.rs.client.ClientBuilder;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyBindingConstants;
@@ -37,7 +35,6 @@ import org.openhab.binding.sony.internal.providers.models.SonyThingChannelDefini
 import org.openhab.binding.sony.internal.providers.models.SonyThingDefinition;
 import org.openhab.binding.sony.internal.providers.models.SonyThingStateDefinition;
 import org.openhab.binding.sony.internal.providers.sources.SonyFolderSource;
-import org.openhab.binding.sony.internal.providers.sources.SonyGithubSource;
 import org.openhab.binding.sony.internal.providers.sources.SonySource;
 import org.openhab.binding.sony.internal.scalarweb.models.ScalarWebService;
 import org.openhab.core.common.ThreadPoolManager;
@@ -91,9 +88,6 @@ public class SonyDefinitionProviderImpl implements SonyDefinitionProvider, SonyD
     /** The thing registry used to lookup things */
     private final ThingTypeRegistry thingTypeRegistry;
 
-    /** The clientBuilder used in HttpRequest */
-    private final ClientBuilder clientBuilder;
-
     /** Scheduler used to schedule events */
     private final ScheduledExecutorService scheduler = ThreadPoolManager.getScheduledPool("SonyDefinitionProviderImpl");
 
@@ -106,8 +100,7 @@ public class SonyDefinitionProviderImpl implements SonyDefinitionProvider, SonyD
      */
     @Activate
     public SonyDefinitionProviderImpl(final @Reference ThingRegistry thingRegistry,
-            final @Reference ThingTypeRegistry thingTypeRegistry, final @Reference ClientBuilder clientBuilder,
-            final Map<String, String> properties) {
+            final @Reference ThingTypeRegistry thingTypeRegistry, final Map<String, String> properties) {
         Objects.requireNonNull(thingRegistry, "thingRegistry cannot be null");
         Objects.requireNonNull(thingTypeRegistry, "thingTypeRegistry cannot be null");
         Objects.requireNonNull(properties, "properties cannot be null");
@@ -115,14 +108,10 @@ public class SonyDefinitionProviderImpl implements SonyDefinitionProvider, SonyD
         this.thingRegistry = thingRegistry;
         this.thingTypeRegistry = thingTypeRegistry;
 
-        // local takes preference over github
+        // local is currently the only implemented provider
         final List<SonySource> srcs = new ArrayList<>();
         if (!Boolean.FALSE.equals(SonyUtil.toBooleanObject(properties.get("local")))) {
             srcs.add(new SonyFolderSource(scheduler, properties));
-        }
-        this.clientBuilder = clientBuilder;
-        if (!Boolean.FALSE.equals(SonyUtil.toBooleanObject(properties.get("github")))) {
-            srcs.add(new SonyGithubSource(scheduler, properties, this.clientBuilder));
         }
         this.sources = Collections.unmodifiableList(srcs);
     }
