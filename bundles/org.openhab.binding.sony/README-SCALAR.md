@@ -767,7 +767,7 @@ One of the issues with the dynamically create channels is that some channels are
 A common example would be a Bravia TV.
 If you start openHAB and the thing goes online without the TV being one, there is a high likelyhood that the `audio#volume-xxx` channels will not be defined.
 
-The first attempt to 'fix' this situation was to be able to create a thing type for the TV (that predefines the channels needed) and then to use that local thing type as the source of channels.
+An attempt to 'fix' this situation is to create a thing type for the TV (that predefines the channels needed) and then to use that local thing type as the source of channels.
 
 This addon defines the following directories:
 
@@ -791,48 +791,13 @@ Now - to solve the problem of the non detected channels - you can follow this pr
 6. Copy the `{modelname}.json` in `userdata/sony/db/local/types` directory
 7. Wait a minute or so and the thing type of your thing will change to this file
 
-From this point on - the channels created will come from the local file rather than be dynamically created.
-The only exception to this is that the application channels (netflix, youtube, etc) will continue to be dynamic.
-
-### GITHUB Information
-
-While the local support will work, there are a number of downsides to it.
-Everyone would have to do this, updates to the thing type will be nearly impossible (because everyone would have to make local changes to JSON - yuck!) and this doesn't help me diagnose issues with the device (since everything is local).
-
-Because of this - in addition to writing things locally, the addon will query GITHUB for thing types and use thing types defined there if found.
-Likewise it will upload device thing types/capabilities to allow for quicker diagnosis of new/updated capabilities as sony releases them.
-This is somewhat similar to what the ZWAVE addon does (but uses github as the DB instead).
-
-Please note that the ONLY identifying information being uploaded would be the name you assigned to the device and this will ONLY upload information if your model is new or has changed from the existing one.
-
-There are two github repositories this addon works with:
-
-1. [sonydevices/openHAB](https://github.com/sonydevices/openHAB) - this will contain the capabilities and thing types specific to openHAB
-2. [sonydevices/dev](https://github.com/sonydevices/dev) - this will contain the master list of API calls
-
-The github addon will:
-
-1. On startup, the addon will look for `{modelname}.json` (as defined above) from `userdata/sony/db/local/types` and will use that if found.
-2. If not found, the addon will look for `{modelname}.json` in `userdata/sony/db/github/types` and use that if found
-3. If not found, the addon will look for `{modelname}.json` in the GITHUB repository under `sonydevices/openHAB/thingtypes`.
-If found, the file will be downloaded to `userdata/sony/db/github/types` and will be used.
-4. The thing then goes online
-5. The github implementation will then compare the device capabilities to the `sonydevices/dev/apiinfo/restapi.json` (the master API document) and if any new/updated capabilities are found, will open a new issue on `sonydevices/dev` with the new/updated capability (if an issue doesn't already exist).
-6. Likewise, the implementation will compare the thing type (if dynamically generated) to the `sonydevices/openHAB/thingtypes` and if any new/updated thing type channels are found, will open a new issue on `sonydevices/openHAB` with the new/updated thing type (if an issue doesn't already exist).
-7. Finally, the implementation will compare the device capabilities (if dynamically generated) to the `sonydevices/openHAB/definitions/thingtypes` for the same model and if any new/updated capabilities are found, will open a new issue on `sonydevices/openHAB` with the new/updated capabilities (if an issue doesn't already exist).
-
-By using github, this addon can be supported by a team of people and have a continued existance beyond myself.
-
-### Disabling local/github information
-
-You may disable either local or the github information by editing the `conf/services/runtime.cfg` and including the following:
+You may disable the local thing definition by editing the `conf/services/runtime.cfg` and including the following:
 
 ```
 sony.sources:local=false
-sony.sources:github=false
 ```
 
-Setting either value to anything but 'false' will result in that provider being activated.
+Setting the value to anything but 'false' will result in that provider being activated.
 Please note that disabling will disable the ability to use custom thing types for your devices.
 
 ### Sony Support pages
