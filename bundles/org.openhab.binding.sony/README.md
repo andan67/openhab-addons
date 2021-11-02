@@ -245,29 +245,29 @@ However, if you've linked a great deal of channels (causing alot of requests to 
 
 ### Separating the sony logging into its own file
 
-To seperate all the sony logging information into a separate file, please do the following:
+To separate all the sony logging information into a separate file, please edit the file `userdata/etc/log4j2.xml` as follows:
 
-1. Edit userdata/etc/org.ops4j.pax.logging.cfg
-2. Delete any lines that have "sony" in them
-3. Add the following lines (at the end of the file), save and then restart openhab (you may want to adjust the log4j2.appender.sony.policies.size.size setting for something reasonable to your system)
+1. Add an logger appender definition (including the log file name)
+2. Add a logger definition referencing the appender defined in step 1
+
+Example for logging all `INFO` logs into a separate file `sony.log` under the standard log folder:
 
 ```
-# sony
-log4j2.logger.sony.name = org.openhab.binding.sony
-log4j2.logger.sony.level = DEBUG
-log4j2.logger.sony.additivity = false
-log4j2.logger.sony.appenderRefs = sony
-log4j2.logger.sony.appenderRef.sony.ref = sony
-log4j2.appender.sony.name = sony
-log4j2.appender.sony.type = RollingRandomAccessFile
-log4j2.appender.sony.fileName = ${openhab.logdir}/sony.log
-log4j2.appender.sony.filePattern = ${openhab.logdir}/sony.log.%i
-log4j2.appender.sony.immediateFlush = true
-log4j2.appender.sony.append = true
-log4j2.appender.sony.layout.type = PatternLayout
-log4j2.appender.sony.layout.pattern = %d{dd-MMM-yyyy HH:mm:ss.SSS} [%-5.5p] [%-50.50c] - %m%n
-log4j2.appender.sony.policies.type = Policies
-log4j2.appender.sony.policies.size.type = SizeBasedTriggeringPolicy
-log4j2.appender.sony.policies.size.size = 10MB
-log4j2.appender.sony.strategy.type = DefaultRolloverStrategy
+<Appenders>
+...
+    <!-- Sony binding appender -->
+    <RollingFile fileName="${sys:openhab.logdir}/sony.log" filePattern="${sys:openhab.logdir}/sony-%d{yyyyMMdd-HHmmss}.log" name="SONY">
+        <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%-5.5p] [%-36.36c] - %m%n"/>
+        <Policies>
+            <OnStartupTriggeringPolicy/>
+            <SizeBasedTriggeringPolicy size="16 MB"/>
+        </Policies>
+    </RollingFile>
+</Appenders>
+<Loggers>
+...
+    <Logger additivity="false" level="INFO" name="org.openhab.binding.sony">
+        <AppenderRef ref="SONY"/>
+    </Logger>
+</Loggers>
 ```
