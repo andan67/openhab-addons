@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config-description:config-descriptions
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:config-description="https://openhab.org/schemas/config-description/v1.0.0"
+        xsi:schemaLocation="https://openhab.org/schemas/config-description/v1.0.0 https://openhab.org/schemas/config-description-1.0.0.xsd">
+
+    <config-description uri="thing-type:skyq:config">
+        <parameter name="devicehHost" type="text" required="true">
+            <context>network-address</context>
+            <label>Host Address</label>
+            <description>The host IP address/name of the receiver</description>
+        </parameter>
+        <parameter name="deviceMacAddress" type="text">
+            <label>MAC Address</label>
+            <description>The MAC address of the receiver</description>
+        </parameter>
+        <parameter name="configurablePresets" type="boolean">
+            <label>Enable Configurable Presets</label>
+            <description>Enable for file based configuration of channel presets</description>
+            <default>false</default>
+            <advanced>true</advanced>
+        </parameter>
+
+    </config-description>
+</config-description:config-descriptions>
