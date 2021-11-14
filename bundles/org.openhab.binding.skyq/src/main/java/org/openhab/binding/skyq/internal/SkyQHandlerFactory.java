@@ -12,7 +12,7 @@
  */
 package org.openhab.binding.skyq.internal;
 
-import static org.openhab.binding.skyq.internal.skyqBindingConstants.*;
+import static org.openhab.binding.skyq.internal.SkyQBindingConstants.*;
 
 import java.util.Set;
 
@@ -26,16 +26,16 @@ import org.openhab.core.thing.binding.ThingHandlerFactory;
 import org.osgi.service.component.annotations.Component;
 
 /**
- * The {@link skyqHandlerFactory} is responsible for creating things and thing
+ * The {@link SkyQHandlerFactory} is responsible for creating things and thing
  * handlers.
  *
  * @author Andreas - Initial contribution
  */
 @NonNullByDefault
 @Component(configurationPid = "binding.skyq", service = ThingHandlerFactory.class)
-public class skyqHandlerFactory extends BaseThingHandlerFactory {
+public class SkyQHandlerFactory extends BaseThingHandlerFactory {
 
-    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Set.of(THING_TYPE_SAMPLE);
+    private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Set.of(THING_TYPE_SKYQ);
 
     @Override
     public boolean supportsThingType(ThingTypeUID thingTypeUID) {
@@ -46,8 +46,8 @@ public class skyqHandlerFactory extends BaseThingHandlerFactory {
     protected @Nullable ThingHandler createHandler(Thing thing) {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
-        if (THING_TYPE_SAMPLE.equals(thingTypeUID)) {
-            return new skyqHandler(thing);
+        if (THING_TYPE_SKYQ.equals(thingTypeUID)) {
+            return new SkyQHandler(thing);
         }
 
         return null;

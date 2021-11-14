@@ -5,42 +5,158 @@
 	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
 
 	<!-- Sample Thing Type -->
-	<thing-type id="sample">
-		<!-- Comment this in for Things which need a Bridge to function.
-			<supported-bridge-type-refs>
-			<bridge-type-ref id="skyqBridge" />
-			</supported-bridge-type-refs>
-		-->
+	<thing-type id="skyqreceiver">
+		<label>SkyQ Binding Thing</label>
+		<description>SkyQ Binding Thing</description>
 
-		<label>skyq Binding Thing</label>
-		<description>Sample thing for skyq Binding</description>
+		<channel-groups>
+			<channel-group typeId="control_channels" id="control_channels"/>
+			<!-- <channel-group typeId="status_channels" id="status_channels"/> -->
+		</channel-groups>
 
-		<channels>
-			<channel id="channel1" typeId="sample-channel"/>
-		</channels>
-
-		<config-description>
+		<config-description uri="thing-type:skyq:config">
 			<parameter name="hostname" type="text" required="true">
 				<context>network-address</context>
 				<label>Hostname</label>
-				<description>Hostname or IP address of the device</description>
+				<description>The host IP address/name of the receiver</description>
 			</parameter>
-			<parameter name="password" type="text" required="true">
-				<context>password</context>
-				<label>Password</label>
-				<description>Passwort to access the device</description>
+			<parameter name="deviceMacAddress" type="text">
+				<context>network-address</context>
+				<label>MAC Address</label>
+				<description>The MAC address of the receiver</description>
 			</parameter>
-			<parameter name="refreshInterval" type="integer" unit="s" min="1">
+			<parameter name="refreshInterval" type="integer" unit="s">
 				<label>Refresh Interval</label>
-				<description>Interval the device is polled in sec.</description>
+				<description>The interval, in seconds, to refresh the device state (-1 to disable)</description>
+				<default>30</default>
+				<advanced>true</advanced>
 			</parameter>
+			<parameter name="retryPolling" type="integer" unit="s">
+				<label>Retry Polling</label>
+				<description>The time, in seconds, to retry a connection attempt (-1 to disable)</description>
+				<default>10</default>
+				<advanced>true</advanced>
+			</parameter>
+			<parameter name="checkStatusPolling" type="integer" unit="s">
+				<label>Status Check Interval</label>
+				<description>The time, in seconds, to check the device status (-1 to disable)</description>
+				<default>30</default>
+				<advanced>true</advanced>
+			</parameter>
+			<parameter name="configurablePresets" type="boolean">
+				<label>Enable Configurable Presets</label>
+				<description>Enable for file based configuration of channel presets</description>
+				<default>false</default>
+				<advanced>true</advanced>
+			</parameter>
+
 		</config-description>
 	</thing-type>
 
-	<!-- Sample Channel Type -->
-	<channel-type id="sample-channel">
-		<item-type>Number:Temperature</item-type>
-		<label>Example Temperature</label><!-- Use uppercase words, except prepositions. 2-3 words, max 25 chars -->
-		<description>Sample channel for skyq Binding</description>
+	<channel-group-type id="control_channels">
+		<label>Receiver Control</label>
+		<description>Control the receiver</description>
+		<channels>
+			<channel id="controlCommand" typeId="controlCommand"/>
+			<!--
+				We will provide an input channel dynamically.
+				<channel id="input" typeId="channelPreset" />
+			-->
+		</channels>
+	</channel-group-type>
+
+	<channel-type id="controlCommand">
+		<item-type>String</item-type>
+		<label>Control Receiver Command</label>
+		<description>Send control command to SkyQ receiver</description>
+		<state pattern="%s">
+			<options>
+				<!--<option value="0">power</option>
+					<option value="1">select</option>
+					<option value="2">backup</option>
+					<option value="2">dismiss</option>
+					<option value="6">channelup</option>
+					<option value="7">channeldown</option>
+					<option value="8">interactive</option>
+					<option value="8">sidebar</option>
+					<option value="9">help</option>
+					<option value="10">services</option>
+					<option value="10">search</option>
+					<option value="11">tvguide</option>
+					<option value="11">home</option>
+					<option value="14">i</option>
+					<option value="15">text</option>
+					<option value="16">up</option>
+					<option value="17">down</option>
+					<option value="18">left</option>
+					<option value="19">right</option>
+					<option value="32">red</option>
+					<option value="33">green</option>
+					<option value="34">yellow</option>
+					<option value="35">blue</option>
+					<option value="48">0</option>
+					<option value="49">1</option>
+					<option value="50">2</option>
+					<option value="51">3</option>
+					<option value="51">4</option>
+					<option value="51">5</option>
+					<option value="54">6</option>
+					<option value="55">7</option>
+					<option value="56">8</option>
+					<option value="57">9</option>
+					<option value="64">play</option>
+					<option value="65">pause</option>
+					<option value="66">stop</option>
+					<option value="67">record</option>
+					<option value="69">fastforward</option>
+					<option value="71">rewind</option>
+					<option value="240">boxoffice</option>
+					<option value="241">sky</option> -->
+
+				<option value="power">power</option>
+				<option value="select">select</option>
+				<option value="backup">backup</option>
+				<option value="dismiss">dismiss</option>
+				<option value="channelup">channelup</option>
+				<option value="channeldown">channeldown</option>
+				<option value="interactive">interactive</option>
+				<option value="sidebar">sidebar</option>
+				<option value="help">help</option>
+				<option value="services">services</option>
+				<option value="search">search</option>
+				<option value="tvguide">tvguide</option>
+				<option value="home">home</option>
+				<option value="i">i</option>
+				<option value="text">text</option>
+				<option value="uo">up</option>
+				<option value="down">down</option>
+				<option value="left">left</option>
+				<option value="right">right</option>
+				<option value="red">red</option>
+				<option value="green">green</option>
+				<option value="yellow">yellow</option>
+				<option value="blue">blue</option>
+				<option value="0">0</option>
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="play">play</option>
+				<option value="pause">pause</option>
+				<option value="stop">stop</option>
+				<option value="record">record</option>
+				<option value="fastforward">fastforward</option>
+				<option value="rewind">rewind</option>
+				<option value="boxoffice">boxoffice</option>
+				<option value="sky">sky</option>
+			</options>
+		</state>
 	</channel-type>
+
+
 </thing:thing-descriptions>
