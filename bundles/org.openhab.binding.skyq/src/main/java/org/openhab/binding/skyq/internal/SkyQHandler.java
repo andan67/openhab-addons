@@ -1,21 +1,24 @@
 /**
  * Copyright (c) 2010-2021 Contributors to the openHAB project
- *
+ * <p>
  * See the NOTICE file(s) distributed with this work for additional
  * information.
- *
+ * <p>
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0
- *
+ * <p>
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.openhab.binding.skyq.internal;
 
-import static org.openhab.binding.skyq.internal.skyqBindingConstants.*;
+import static org.openhab.binding.skyq.internal.SkyQBindingConstants.*;
+
+import java.util.Map;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -26,42 +29,54 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@link skyqHandler} is responsible for handling commands, which are
+ * The {@link SkyQHandler} is responsible for handling commands, which are
  * sent to one of the channels.
  *
  * @author Andreas - Initial contribution
  */
 @NonNullByDefault
-public class skyqHandler extends BaseThingHandler {
+public class SkyQHandler extends BaseThingHandler {
 
-    private final Logger logger = LoggerFactory.getLogger(skyqHandler.class);
+    private final Logger logger = LoggerFactory.getLogger(SkyQHandler.class);
 
-    private @Nullable skyqConfiguration config;
+    private @Nullable SkyQConfiguration config;
 
-    public skyqHandler(Thing thing) {
+    public SkyQHandler(Thing thing) {
         super(thing);
     }
 
+    private @Nullable ControlProtocol controlProtocol;
+
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
-        if (CHANNEL_1.equals(channelUID.getId())) {
-            if (command instanceof RefreshType) {
-                // TODO: handle data refresh
-            }
+        String id = channelUID.getIdWithoutGroup();
 
-            // TODO: handle command
+        if (command instanceof RefreshType) {
+            // TODO: handle data refresh
+            return;
+        }
 
-            // Note: if communication with thing fails for some reason,
-            // indicate that by setting the status with detail information:
-            // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-            // "Could not control device at IP address x.x.x.x");
+        // TODO: handle command
+
+        // Note: if communication with thing fails for some reason,
+        // indicate that by setting the status with detail information:
+        // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+        // "Could not control device at IP address x.x.x.x");
+        switch (id) {
+            case CHANNEL_CONTROL_COMMAND:
+                logger.info("Handle command : {}", command.toString());
+                controlProtocol.sendCommand(command.toString());
+                break;
         }
     }
 
     @Override
     public void initialize() {
-        config = getConfigAs(skyqConfiguration.class);
+        config = getConfigAs(SkyQConfiguration.class);
 
+        logger.debug("{}: Thing initialize()", thing.getLabel());
+
+        controlProtocol = new ControlProtocol(config.hostname, 49160);
         // TODO: Initialize the handler.
         // The framework requires you to return from this method quickly. Also, before leaving this method a thing
         // status from one of ONLINE, OFFLINE or UNKNOWN must be set. This might already be the real thing status in
@@ -96,5 +111,14 @@ public class skyqHandler extends BaseThingHandler {
         // Add a description to give user information to understand why thing does not work as expected. E.g.
         // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
         // "Can not access device as username and/or password are invalid");
+    }
+
+    /**
+     * This routine is called every time the Thing configuration has been changed
+     */
+    @Override
+    public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
+        super.handleConfigurationUpdate(configurationParameters);
+        logger.debug("{}: Thing config updated, re-initialize", thing.getLabel());
     }
 }

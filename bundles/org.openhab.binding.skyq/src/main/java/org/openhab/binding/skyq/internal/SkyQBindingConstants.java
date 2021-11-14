@@ -16,19 +16,19 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.thing.ThingTypeUID;
 
 /**
- * The {@link skyqBindingConstants} class defines common constants, which are
+ * The {@link SkyQBindingConstants} class defines common constants, which are
  * used across the whole binding.
  *
  * @author Andreas - Initial contribution
  */
 @NonNullByDefault
-public class skyqBindingConstants {
+public class SkyQBindingConstants {
 
     private static final String BINDING_ID = "skyq";
 
     // List of all Thing Type UIDs
-    public static final ThingTypeUID THING_TYPE_SAMPLE = new ThingTypeUID(BINDING_ID, "sample");
+    public static final ThingTypeUID THING_TYPE_SKYQ = new ThingTypeUID(BINDING_ID, "skyqreceiver");
 
     // List of all Channel ids
-    public static final String CHANNEL_1 = "channel1";
+    public static final String CHANNEL_CONTROL_COMMAND = "controlCommand";
 }

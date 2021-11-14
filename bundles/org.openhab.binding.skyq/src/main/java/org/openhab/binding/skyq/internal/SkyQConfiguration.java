@@ -13,16 +13,19 @@
 package org.openhab.binding.skyq.internal;
 
 /**
- * The {@link skyqConfiguration} class contains fields mapping thing configuration parameters.
+ * The {@link SkyQConfiguration} class contains fields mapping thing configuration parameters.
  *
  * @author Andreas - Initial contribution
  */
-public class skyqConfiguration {
+public class SkyQConfiguration {
 
     /**
      * Sample configuration parameters. Replace with your own.
      */
     public String hostname;
-    public String password;
+    public String deviceMacAddress;
     public int refreshInterval;
+    public int retryPolling;
+    public int checkStatusPolling;
+    public int configurablePresets;
 }
