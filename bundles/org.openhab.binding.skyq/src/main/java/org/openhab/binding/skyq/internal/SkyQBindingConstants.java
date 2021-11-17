@@ -31,4 +31,5 @@ public class SkyQBindingConstants {
 
     // List of all Channel ids
     public static final String CHANNEL_CONTROL_COMMAND = "controlCommand";
+    public static final String CHANNEL_PRESET = "channelPreset";
 }

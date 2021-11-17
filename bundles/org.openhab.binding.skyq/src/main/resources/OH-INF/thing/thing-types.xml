@@ -6,8 +6,8 @@
 
 	<!-- Sample Thing Type -->
 	<thing-type id="skyqreceiver">
-		<label>SkyQ Binding Thing</label>
-		<description>SkyQ Binding Thing</description>
+		<label>SkyQ Receiver</label>
+		<description>SkyQ Receiver</description>
 
 		<channel-groups>
 			<channel-group typeId="control_channels" id="control_channels"/>
@@ -31,16 +31,16 @@
 				<default>30</default>
 				<advanced>true</advanced>
 			</parameter>
-			<parameter name="retryPolling" type="integer" unit="s">
+			<parameter name="retryInterval" type="integer" unit="s">
 				<label>Retry Polling</label>
 				<description>The time, in seconds, to retry a connection attempt (-1 to disable)</description>
-				<default>10</default>
+				<default>60</default>
 				<advanced>true</advanced>
 			</parameter>
-			<parameter name="checkStatusPolling" type="integer" unit="s">
+			<parameter name="checkStatusInterval" type="integer" unit="s">
 				<label>Status Check Interval</label>
 				<description>The time, in seconds, to check the device status (-1 to disable)</description>
-				<default>30</default>
+				<default>60</default>
 				<advanced>true</advanced>
 			</parameter>
 			<parameter name="configurablePresets" type="boolean">
@@ -58,6 +58,7 @@
 		<description>Control the receiver</description>
 		<channels>
 			<channel id="controlCommand" typeId="controlCommand"/>
+			<channel id="channelPreset" typeId="channelPreset"/>
 			<!--
 				We will provide an input channel dynamically.
 				<channel id="input" typeId="channelPreset" />
@@ -65,10 +66,16 @@
 		</channels>
 	</channel-group-type>
 
+	<channel-type id="channelPreset">
+		<item-type>String</item-type>
+		<label>Channel Preset</label>
+		<description>Select channel from preset</description>
+	</channel-type>
+
 	<channel-type id="controlCommand">
 		<item-type>String</item-type>
 		<label>Control Receiver Command</label>
-		<description>Send control command to SkyQ receiver</description>
+		<description>Send control command to SkyQ</description>
 		<state pattern="%s">
 			<options>
 				<!--<option value="0">power</option>

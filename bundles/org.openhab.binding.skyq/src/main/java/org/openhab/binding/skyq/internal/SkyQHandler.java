@@ -14,14 +14,24 @@ package org.openhab.binding.skyq.internal;
 
 import static org.openhab.binding.skyq.internal.SkyQBindingConstants.*;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Map;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
+import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
+import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.binding.BaseThingHandler;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
@@ -38,14 +48,34 @@ import org.slf4j.LoggerFactory;
 public class SkyQHandler extends BaseThingHandler {
 
     private final Logger logger = LoggerFactory.getLogger(SkyQHandler.class);
+    private final WebSocketClient webSocketClient;
+    private final HttpClient httpClient;
 
     private @Nullable SkyQConfiguration config;
 
-    public SkyQHandler(Thing thing) {
+    private @Nullable ControlProtocol controlProtocol;
+    private @Nullable RESTProtocol restProtocol;
+
+    public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient) {
         super(thing);
+        this.webSocketClient = webSocketClient;
+        this.httpClient = httpClient;
     }
 
-    private @Nullable ControlProtocol controlProtocol;
+    /**
+     * The refresh state event - will only be created when we are connected.
+     */
+    private final AtomicReference<@Nullable Future<?>> refreshState = new AtomicReference<>(null);
+
+    /**
+     * The check status event - will only be created when we are connected.
+     */
+    private final AtomicReference<@Nullable Future<?>> checkStatus = new AtomicReference<>(null);
+
+    /**
+     * The retry connection event - will only be created when we are disconnected.
+     */
+    private final AtomicReference<@Nullable Future<?>> retryConnection = new AtomicReference<>(null);
 
     @Override
     public void handleCommand(ChannelUID channelUID, Command command) {
@@ -65,52 +95,61 @@ public class SkyQHandler extends BaseThingHandler {
         switch (id) {
             case CHANNEL_CONTROL_COMMAND:
                 logger.info("Handle command : {}", command.toString());
-                controlProtocol.sendCommand(command.toString());
+                if (controlProtocol != null) {
+                    controlProtocol.sendCommand(command.toString());
+                }
                 break;
+            case CHANNEL_PRESET:
+                logger.info("Handle command : {}", command.toString());
+                if (restProtocol != null) {
+                    restProtocol.getChannels();
+                }
         }
     }
 
     @Override
     public void initialize() {
-        config = getConfigAs(SkyQConfiguration.class);
-
         logger.debug("{}: Thing initialize()", thing.getLabel());
+        cancel(retryConnection.getAndSet(this.scheduler.submit(this::doConnect)));
+    }
 
-        controlProtocol = new ControlProtocol(config.hostname, 49160);
-        // TODO: Initialize the handler.
-        // The framework requires you to return from this method quickly. Also, before leaving this method a thing
-        // status from one of ONLINE, OFFLINE or UNKNOWN must be set. This might already be the real thing status in
-        // case you can decide it directly.
-        // In case you can not decide the thing status directly (e.g. for long running connection handshake using WAN
-        // access or similar) you should set status UNKNOWN here and then decide the real status asynchronously in the
-        // background.
+    private void doConnect() {
+        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
+        config = getConfigAs(SkyQConfiguration.class);
+        if (isReachable()) {
+            updateStatus(ThingStatus.ONLINE);
+        } else {
+            controlProtocol = null;
+            restProtocol = null;
+            logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", config.hostname);
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                    "Error connecting to device: not reachable");
+            return;
+        }
+    }
 
-        // set the thing status to UNKNOWN temporarily and let the background task decide for the real status.
-        // the framework is then able to reuse the resources from the thing handler initialization.
-        // we set this upfront to reliably check status updates in unit tests.
-        updateStatus(ThingStatus.UNKNOWN);
+    @Override
+    protected void updateStatus(final ThingStatus status, final ThingStatusDetail statusDetail,
+            final @Nullable String description) {
+        super.updateStatus(status, statusDetail, description);
+        config = getConfigAs(SkyQConfiguration.class);
+        if (status == ThingStatus.ONLINE) {
+            restProtocol = new RESTProtocol(config.hostname, httpClient);
+            controlProtocol = new ControlProtocol(config.hostname);
+            scheduleCheckStatus();
+        } else if (status == ThingStatus.UNKNOWN) {
+            // probably in the process of reconnecting - ignore
+            logger.trace("Ignoring thing status of UNKNOWN");
+        } else {
+            controlProtocol = null;
+            cancel(refreshState.getAndSet(null));
+            cancel(checkStatus.getAndSet(null));
 
-        // Example for background initialization:
-        scheduler.execute(() -> {
-            boolean thingReachable = true; // <background task with long running initialization here>
-            // when done do:
-            if (thingReachable) {
-                updateStatus(ThingStatus.ONLINE);
-            } else {
-                updateStatus(ThingStatus.OFFLINE);
+            // don't bother reconnecting - won't fix a configuration error
+            if (statusDetail != ThingStatusDetail.CONFIGURATION_ERROR) {
+                scheduleReconnect();
             }
-        });
-
-        // These logging types should be primarily used by bindings
-        // logger.trace("Example trace message");
-        // logger.debug("Example debug message");
-        // logger.warn("Example warn message");
-
-        // Note: When initialization can NOT be done set the status with more details for further
-        // analysis. See also class ThingStatusDetail for all available status details.
-        // Add a description to give user information to understand why thing does not work as expected. E.g.
-        // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR,
-        // "Can not access device as username and/or password are invalid");
+        }
     }
 
     /**
@@ -120,5 +159,90 @@ public class SkyQHandler extends BaseThingHandler {
     public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
         super.handleConfigurationUpdate(configurationParameters);
         logger.debug("{}: Thing config updated, re-initialize", thing.getLabel());
+    }
+
+    /**
+     * Checks if device is reachable
+     *
+     * @return true if device is reachable, otherweise false
+     */
+    private boolean isReachable() {
+        if (config.hostname != null && !config.hostname.isEmpty()) {
+            try (Socket soc = new Socket()) {
+                // return InetAddress.getByName(config.hostname).isReachable(500);
+                soc.connect(new InetSocketAddress(config.hostname, ControlProtocol.DEFAULT_PORT), 3000);
+                return true;
+            } catch (IOException ex) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private void scheduleReconnect() {
+        if (config.retryInterval > 0) {
+            cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
+                if (!Thread.currentThread().isInterrupted() && !isRemoved()) {
+                    logger.debug("Do reconnect for {}", thing.getLabel());
+                    doConnect();
+                }
+            }, config.retryInterval, TimeUnit.SECONDS)));
+        } else {
+            logger.debug("Retry connection has been disabled via configuration setting");
+        }
+    }
+
+    private void scheduleCheckStatus() {
+        if (config.hostname != null && !config.hostname.isEmpty() && config.checkStatusInterval > 0) {
+
+            cancel(checkStatus.getAndSet(scheduler.schedule(() -> {
+                try {
+                    if (!Thread.currentThread().isInterrupted() && !isRemoved()) {
+                        try (Socket soc = new Socket()) {
+                            soc.connect(new InetSocketAddress(config.hostname, ControlProtocol.DEFAULT_PORT), 3000);
+                        }
+                        logger.debug("Checking connectivity to {}:{} - successful", config.hostname,
+                                ControlProtocol.DEFAULT_PORT);
+                        scheduleCheckStatus();
+                    }
+                } catch (final IOException ex) {
+                    logger.debug("Checking connectivity to {}:{} - unsuccessful - going offline: {}", config.hostname,
+                            ControlProtocol.DEFAULT_PORT, ex.getMessage(), ex);
+                    updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                            "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
+                }
+            }, config.checkStatusInterval, TimeUnit.SECONDS)));
+        }
+    }
+
+    private static void cancel(final @Nullable Future<?> future) {
+        if (future != null) {
+            future.cancel(true);
+        }
+    }
+
+    private static void checkInterrupt() throws InterruptedException {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new InterruptedException("thread interrupted");
+        }
+    }
+
+    /**
+     * Helper method to determine if the thing is being removed (or is removed)
+     *
+     * @return true if removed, false otherwise
+     */
+    private boolean isRemoved() {
+        final ThingStatus status = getThing().getStatus();
+        return status == ThingStatus.REMOVED || status == ThingStatus.REMOVING;
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        logger.debug("Disposing {}", thing.getLabel());
+        cancel(refreshState.getAndSet(null));
+        cancel(retryConnection.getAndSet(null));
+        cancel(checkStatus.getAndSet(null));
     }
 }

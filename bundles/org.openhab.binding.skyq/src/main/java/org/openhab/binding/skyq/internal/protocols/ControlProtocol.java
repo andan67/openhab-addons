@@ -2,12 +2,13 @@ package org.openhab.binding.skyq.internal.protocols;
 
 import static java.util.Map.entry;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -29,9 +30,14 @@ public class ControlProtocol {
             entry("rewind", 71), entry("boxoffice", 240), entry("sky", 241));
 
     static final int PROTOCOL_TIMEOUT = 1000;
+    public static final int DEFAULT_PORT = 49160;
 
     protected String host;
     protected int port;
+
+    public ControlProtocol(String host) {
+        this(host, DEFAULT_PORT);
+    }
 
     public ControlProtocol(String host, int port) {
         this.host = host;
@@ -64,22 +70,24 @@ public class ControlProtocol {
         try {
             Socket client = new Socket();
             client.connect(new InetSocketAddress(host, port), 1000);
-            OutputStream dataOut = client.getOutputStream();
-            InputStream dataIn = client.getInputStream();
+            OutputStream dataOut = new DataOutputStream(client.getOutputStream());
+            InputStream dataIn = new DataInputStream(client.getInputStream());
 
             int strlen = 12;
 
             long timeout = System.currentTimeMillis() + PROTOCOL_TIMEOUT;
-
+            byte[] buffer = new byte[1024];
             while (true) {
-                byte[] data = dataIn.readNBytes(1024);
-                if (data.length < 24) {
-                    dataOut.write(Arrays.copyOfRange(data, 0, strlen));
+                int nBytesRead = dataIn.read(buffer);
+                if (nBytesRead < 24) {
+                    dataOut.write(buffer, 0, strlen);
+                    dataOut.flush();
                     strlen = 1;
                 } else {
                     dataOut.write(commandBytes);
                     commandBytes[1] = 0x00;
                     dataOut.write(commandBytes);
+                    dataOut.flush();
                     client.close();
                     break;
                 }
