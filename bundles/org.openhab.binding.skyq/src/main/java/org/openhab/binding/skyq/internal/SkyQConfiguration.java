@@ -25,7 +25,7 @@ public class SkyQConfiguration {
     public String hostname;
     public String deviceMacAddress;
     public int refreshInterval;
-    public int retryPolling;
-    public int checkStatusPolling;
-    public int configurablePresets;
+    public int retryInterval;
+    public int checkStatusInterval;
+    public boolean configurablePresets;
 }
