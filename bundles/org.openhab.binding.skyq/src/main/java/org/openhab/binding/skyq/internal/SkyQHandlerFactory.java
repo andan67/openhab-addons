@@ -44,13 +44,16 @@ public class SkyQHandlerFactory extends BaseThingHandlerFactory {
     private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Set.of(THING_TYPE_SKYQ);
     private final WebSocketClient webSocketClient;
     private final HttpClient httpClient;
+    private final SkyQStateDescriptionOptionProvider stateDescriptionProvider;
 
     @Activate
     public SkyQHandlerFactory(final @Reference WebSocketFactory webSocketFactory,
-            final @Reference HttpClientFactory httpClientFactory) {
+            final @Reference HttpClientFactory httpClientFactory,
+            final @Reference SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
 
         this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
         this.httpClient = httpClientFactory.getCommonHttpClient();
+        this.stateDescriptionProvider = stateDescriptionProvider;
     }
 
     @Override
@@ -63,7 +66,7 @@ public class SkyQHandlerFactory extends BaseThingHandlerFactory {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
         if (THING_TYPE_SKYQ.equals(thingTypeUID)) {
-            return new SkyQHandler(thing, webSocketClient, httpClient);
+            return new SkyQHandler(thing, webSocketClient, httpClient, stateDescriptionProvider);
         }
 
         return null;

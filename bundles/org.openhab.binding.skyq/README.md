@@ -1,56 +1,200 @@
-# skyq Binding
+# SkyQ Binding
 
-_Give some details about what this binding is meant for - a protocol, system, specific device._
-
-_If possible, provide some resources like pictures, a video, etc. to give an impression of what can be done with this binding. You can place such resources into a `doc` folder next to this README.md._
+This binding provides control functions for SkyQ receivers.
 
 ## Supported Things
 
-_Please describe the different supported things / devices within this section._
-_Which different types are supported, which models were tested etc.?_
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
+SkyQ receiver.
 
 ## Discovery
 
-_Describe the available auto-discovery features here. Mention for what it works and what needs to be kept in mind when using it._
-
-## Binding Configuration
-
-_If your binding requires or supports general configuration settings, please create a folder ```cfg``` and place the configuration file ```<bindingId>.cfg``` inside it. In this section, you should link to this file and provide some information about the options. The file could e.g. look like:_
-
-```
-# Configuration for the skyq Binding
-#
-# Default secret key for the pairing of the skyq Thing.
-# It has to be between 10-40 (alphanumeric) characters.
-# This may be changed by the user for security reasons.
-secret=openHABSecret
-```
-
-_Note that it is planned to generate some part of this based on the information that is available within ```src/main/resources/OH-INF/binding``` of your binding._
-
-_If your binding does not offer any generic configurations, you can remove this section completely._
+Currently no discovery is implemented
 
 ## Thing Configuration
 
-_Describe what is needed to manually configure a thing, either through the UI or via a thing-file. This should be mainly about its mandatory and optional configuration parameters. A short example entry for a thing file can help!_
+Use the UI to add the receiver as a thing and provide the following configuration options
 
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
+| Parameter         | Required | Default            | Description                                                                                                                                          |
+|-------------------|----------|--------------------|-------------------------------------------------------|
+| `Hostname`        | yes      | N/A                | The IP address of the SkyQ receiver to control        |
+| `MAC Address`     | no       | "" (empty string) | The MAC address of the SkyQ receiver to control        |
+| `Enable Configurable Preset` | no       | true     | Enables the configuration of the channel preset (see below)     |
+| `Refresh Interval`        | yes      | 30 | The interval for refreshing the item states in seconds       |
+| `Retry Polling`    | yes       | 60  | The interval for retrying the connection to the recevier after it went offline |
+| `Status Check Interval`    | yes       | 60 | The interval for checking if the receiver is reachable (online)  |
 
 ## Channels
 
-_Here you should provide information about available channel types, what their meaning is and how they can be used._
+| Channel  | Type   | Description                  |
+|----------|--------|----------------------------|
+| control#controlCommand  | String | Send a control command to the device (see below)  |
+| control#channelPreset  | String | List (TV) channels from receiver and allows switch to a selected channel. The list and order of the channels can be configured through a file (see below).|
 
-_Note that it is planned to generate some part of this based on the XML files within ```src/main/resources/OH-INF/thing``` of your binding._
 
-| channel  | type   | description                  |
+## Control commands
+
+The `control#controlCommand` channel supports the following commands that are defined as state options:
+
+| Value    | Label   | Description                  |
 |----------|--------|------------------------------|
-| control  | Switch | This is the control channel  |
+| power | Power ||
+| select | Select ||
+| backup | Back/Up ||
+| dismiss | Dismiss ||
+| channelup | Channel up ||
+| channeldown |Channel down ||
+| interactive | Interactive ||
+| sidebar | Sidebar ||
+| help | Help ||
+| services | Services ||
+| search | Search ||
+| tvguide | TV guide ||
+| home | Home ||
+| i | i ||
+| text |Text ||
+| up | Up ||
+| down | Down ||
+| left | Left ||
+| right | Right ||
+| red | Red ||
+| green | Green ||
+| yellow | Yellow ||
+| blue | Blue ||
+| 0 | 0 ||
+| 1 | 1 ||
+| 2 | 2 ||
+| 3 | 3 ||
+| 4 | 4 ||
+| 5 | 5 ||
+| 6 | 6 ||
+| 7 | 7 ||
+| 8 | 8 ||
+| 9 | 9 ||
+| play | Play ||
+| pause | Pause ||
+| stop | Stop ||
+| record | Record ||
+| fastforward | Fast forward  ||
+| rewind | Rewind ||
+| boxoffice | Box office ||
+| sky | Sky ||
 
-## Full Example
+## Configurable channel presets
+To ease the selection of a large number of TV preset channels, the channels for selection can be filtered and sorted by use of a configuration file.
+This feature can be enabled by setting the thing configuration `Enable Configurable Presets` and saving the new configuration.
 
-_Provide a full usage example based on textual configuration files (*.things, *.items, *.sitemap)._
+If this feature is enabled, the complete channel list as requested from the receiver on each initialization will be stored
+as a csv formatted file `/userdata/config/skyq/channel_presets.csv`.
 
-## Any custom content here!
+To filter and sort the channels list, edit the file and set the value of the last column named `Rank` as follows: 
 
-_Feel free to add additional sections for whatever you think should also be mentioned about your binding!_
+
+| Rank value   | Effect   |
+|---------------|----------|
+| `< 0`| channel is excluded |
+|  `0` | channel is added to end of preset list |
+| `> 0` | channel is added in the order of the rank value |
+
+Channels with same rank value will be ordered by the display number.
+
+A refresh of the preset channels after a change of the csv file can be triggered by issuing the command `--REFRESH--` which is added as first 
+pseudo channel to the list.
+
+## Main UI Examples
+
+### Control command cell
+
+When clicked, a control command is send to the receiver on selection from a drop down list
+
+#### YAML definition of cell
+
+```
+component: oh-label-cell
+config:
+  action: options
+  actionItem: SkyQReceiver_ControlReceiverCommand
+  expandable: false
+  item: SkyQReceiver_ControlReceiverCommand
+  stateAsHeader: true
+  title: Control Receiver Comman
+```
+
+### Preset cell
+
+When clicked, a custom widget is opened with a list of the possibly filtered and ordered list of channels.
+This list can be further filtered. On selection of a channel item, the receiver will switch to this channel. 
+
+#### YAML definition of cell
+
+```
+component: oh-label-cell
+config:
+  action: popup
+  actionModal: widget:widget_tv_preset
+  actionModalConfig:
+    item: SkyQReceiver_ChannelPreset
+    prop1: Select channel
+  expandable: false
+  item: SkyQReceiver_ChannelPreset
+  title: TV Channel
+```
+
+#### YAML definition of custom widget
+
+```
+uid: widget_tv_preset
+tags: []
+props:
+  parameters:
+    - description: A text prop
+      label: Prop 1
+      name: prop1
+      required: false
+      type: TEXT
+    - context: item
+      description: An item to control
+      label: Item
+      name: item
+      required: false
+      type: TEXT
+  parameterGroups: []
+timestamp: Nov 19, 2021, 5:34:29 PM
+component: f7-card
+config:
+  title: =props.prop1
+slots:
+  default:
+    - component: f7-list
+      config:
+        virtualList: true
+      slots:
+        before-list:
+          - component: oh-input-item
+            config:
+              icon: f7:search
+              iconColor: gray
+              outline: true
+              placeholder: Suche
+              type: text
+              variable: channelFilter
+        default:
+          - component: oh-repeater
+            config:
+              filter: loop.option.label.toLowerCase().includes(vars.channelFilter.toLowerCase()) == true
+              for: option
+              fragment: true
+              itemOptions: =props.item
+              sourceType: itemStateOptions
+            slots:
+              default:
+                - component: oh-list-item
+                  config:
+                    action: command
+                    actionCommand: =loop.option.value
+                    actionItem: =props.item
+                    popupClose: true
+                    title: =loop.option.label
+
+```
+
+
