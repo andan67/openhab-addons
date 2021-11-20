@@ -53,7 +53,7 @@ public class ControlProtocol {
         for (String command : commandList) {
             try {
                 if (doPause)
-                    Thread.sleep(500);
+                    Thread.sleep(250);
                 if (COMMAND_MAP.containsKey(command)) {
                     transmitCommand(COMMAND_MAP.get(command));
                 }

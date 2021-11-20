@@ -10,27 +10,25 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.skyq.internal;
+package org.openhab.binding.mynewbinding.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.core.thing.ThingTypeUID;
 
 /**
- * The {@link SkyQBindingConstants} class defines common constants, which are
+ * The {@link MyNewBindingBindingConstants} class defines common constants, which are
  * used across the whole binding.
  *
  * @author Andreas - Initial contribution
  */
 @NonNullByDefault
-public class SkyQBindingConstants {
+public class MyNewBindingBindingConstants {
 
-    private static final String BINDING_ID = "skyq";
+    private static final String BINDING_ID = "mynewbinding";
 
     // List of all Thing Type UIDs
-    public static final ThingTypeUID THING_TYPE_SKYQ = new ThingTypeUID(BINDING_ID, "skyqreceiver");
+    public static final ThingTypeUID THING_TYPE_SAMPLE = new ThingTypeUID(BINDING_ID, "sample");
 
     // List of all Channel ids
-    public static final String CHANNEL_GROUP_CONTROL = "control";
-    public static final String CHANNEL_CONTROL_COMMAND = "controlCommand";
-    public static final String CHANNEL_PRESET = "channelPreset";
+    public static final String CHANNEL_1 = "channel1";
 }
