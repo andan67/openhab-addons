@@ -100,6 +100,14 @@ Channels with same rank value will be ordered by the display number.
 A refresh of the preset channels after a change of the csv file can be triggered by issuing the command `--REFRESH--` which is added as first 
 pseudo channel to the list.
 
+## Full Example
+
+skyq.things:
+
+```
+Thing skyq:skyqreceiver.skyq1 [ hostname="192.168.178.2", configurablePresets=true, retryInterval=60, checkStatusInterval=60, refreshInterval=30 ]
+```
+
 ## Main UI Examples
 
 ### Control command cell
