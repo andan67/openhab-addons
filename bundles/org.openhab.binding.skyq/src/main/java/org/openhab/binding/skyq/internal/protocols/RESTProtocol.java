@@ -1,3 +1,15 @@
+/**
+ * Copyright (c) 2010-2021 Contributors to the openHAB project
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 package org.openhab.binding.skyq.internal.protocols;
 
 import java.util.ArrayList;
@@ -17,6 +29,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
+/**
+ * @author andan - Initial contribution
+ */
 public class RESTProtocol {
 
     private final Logger logger = LoggerFactory.getLogger(RESTProtocol.class);
@@ -55,13 +70,13 @@ public class RESTProtocol {
                         }.getType());
                 return channels;
             }
-            logger.info(res.getContentAsString());
+            // logger.info("{}", res.getContentAsString());
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            logger.error("{}", e.getMessage(), e);
         } catch (ExecutionException e) {
-            e.printStackTrace();
+            logger.error("{}", e.getMessage(), e);
         } catch (TimeoutException e) {
-            e.printStackTrace();
+            logger.error("{}", e.getMessage(), e);
         }
         return new ArrayList<SkyChannel>();
     }

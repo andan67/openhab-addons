@@ -1,13 +1,13 @@
 /**
  * Copyright (c) 2010-2021 Contributors to the openHAB project
- * <p>
+ *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
- * <p>
+ *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0
- * <p>
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
 package org.openhab.binding.skyq.internal;
@@ -22,6 +22,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -37,10 +38,13 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.jupnp.UpnpService;
+import org.jupnp.registry.Registry;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
 import org.openhab.core.OpenHAB;
+import org.openhab.core.io.transport.upnp.UpnpIOService;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -67,17 +71,25 @@ public class SkyQHandler extends BaseThingHandler {
     private final HttpClient httpClient;
     private final SkyQStateDescriptionOptionProvider stateDescriptionProvider;
 
+    private final UpnpIOService upnpIOService;
+    private final UpnpService upnpService;
+
     private @Nullable SkyQConfiguration config;
 
     private @Nullable ControlProtocol controlProtocol;
     private @Nullable RESTProtocol restProtocol;
 
+    private Map<String, String> sidDispNumMap = new HashMap<>();
+
     public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient,
-            SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
+            SkyQStateDescriptionOptionProvider stateDescriptionProvider, UpnpIOService upnpIOService,
+            UpnpService upnpService) {
         super(thing);
         this.webSocketClient = webSocketClient;
         this.httpClient = httpClient;
         this.stateDescriptionProvider = stateDescriptionProvider;
+        this.upnpIOService = upnpIOService;
+        this.upnpService = upnpService;
     }
 
     /**
@@ -112,13 +124,13 @@ public class SkyQHandler extends BaseThingHandler {
         // "Could not control device at IP address x.x.x.x");
         switch (id) {
             case CHANNEL_CONTROL_COMMAND:
-                logger.info("Handle command : {}", command.toString());
+                logger.debug("Handle command : {}", command.toString());
                 if (controlProtocol != null) {
                     controlProtocol.sendCommand(command.toString());
                 }
                 break;
             case CHANNEL_PRESET:
-                logger.info("Handle command : {}", command.toString());
+                logger.debug("Handle command : {}", command.toString());
                 if (restProtocol != null) {
                     // restProtocol.getChannels();
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
@@ -138,6 +150,9 @@ public class SkyQHandler extends BaseThingHandler {
 
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
+        Registry registry = upnpService.getRegistry();
+        Collection devices = registry.getDevices();
+        upnpService.getControlPoint().
         config = getConfigAs(SkyQConfiguration.class);
         if (isReachable()) {
             restProtocol = new RESTProtocol(config.hostname, httpClient);
@@ -168,7 +183,7 @@ public class SkyQHandler extends BaseThingHandler {
         List<SkyChannel> skyChannels = restProtocol.getChannels();
         if (skyChannels == null || skyChannels.isEmpty())
             return;
-
+        sidDispNumMap.clear();
         final List<StateOption> stateOptions = new ArrayList<>();
 
         if (config != null && config.configurablePresets) {
@@ -207,6 +222,7 @@ public class SkyQHandler extends BaseThingHandler {
                 if (dispNum != null && !dispNum.isEmpty()) {
                     si = Optional.of(new StateOption(dispNum, title));
                 }
+                sidDispNumMap.put(e.id, e.dispNum);
                 return si;
             }).filter(Optional::isPresent).map(Optional::get)
                     .filter(a -> (rankMap.getOrDefault(a.getValue(), Integer.MAX_VALUE)) >= 0)
@@ -234,8 +250,11 @@ public class SkyQHandler extends BaseThingHandler {
             }
 
         } else {
-            final List<StateOption> stateOptionsToAdd = skyChannels.stream()
-                    .map(c -> new StateOption(c.dispNum, c.title)).collect(Collectors.toList());
+            final List<StateOption> stateOptionsToAdd = skyChannels.stream().map(c -> {
+                StateOption si = new StateOption(c.dispNum, c.title);
+                sidDispNumMap.put(c.id, c.dispNum);
+                return si;
+            }).collect(Collectors.toList());
             stateOptions.addAll(stateOptionsToAdd);
         }
         // add special refresh option at beginning

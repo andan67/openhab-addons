@@ -18,6 +18,7 @@ package org.openhab.binding.skyq.internal;
  * @author Andreas - Initial contribution
  */
 public class SkyQConfiguration {
+    public static final String HOSTNAME = "hostname";
 
     /**
      * Sample configuration parameters. Replace with your own.
