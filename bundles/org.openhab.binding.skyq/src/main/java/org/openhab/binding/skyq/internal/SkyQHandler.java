@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -38,13 +37,10 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.jupnp.UpnpService;
-import org.jupnp.registry.Registry;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
 import org.openhab.core.OpenHAB;
-import org.openhab.core.io.transport.upnp.UpnpIOService;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -71,9 +67,6 @@ public class SkyQHandler extends BaseThingHandler {
     private final HttpClient httpClient;
     private final SkyQStateDescriptionOptionProvider stateDescriptionProvider;
 
-    private final UpnpIOService upnpIOService;
-    private final UpnpService upnpService;
-
     private @Nullable SkyQConfiguration config;
 
     private @Nullable ControlProtocol controlProtocol;
@@ -82,14 +75,11 @@ public class SkyQHandler extends BaseThingHandler {
     private Map<String, String> sidDispNumMap = new HashMap<>();
 
     public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient,
-            SkyQStateDescriptionOptionProvider stateDescriptionProvider, UpnpIOService upnpIOService,
-            UpnpService upnpService) {
+            SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
         super(thing);
         this.webSocketClient = webSocketClient;
         this.httpClient = httpClient;
         this.stateDescriptionProvider = stateDescriptionProvider;
-        this.upnpIOService = upnpIOService;
-        this.upnpService = upnpService;
     }
 
     /**
@@ -150,9 +140,6 @@ public class SkyQHandler extends BaseThingHandler {
 
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
-        Registry registry = upnpService.getRegistry();
-        Collection devices = registry.getDevices();
-        upnpService.getControlPoint().
         config = getConfigAs(SkyQConfiguration.class);
         if (isReachable()) {
             restProtocol = new RESTProtocol(config.hostname, httpClient);

@@ -20,10 +20,8 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
-import org.jupnp.UpnpService;
 import org.openhab.core.io.net.http.HttpClientFactory;
 import org.openhab.core.io.net.http.WebSocketFactory;
-import org.openhab.core.io.transport.upnp.UpnpIOService;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingTypeUID;
 import org.openhab.core.thing.binding.BaseThingHandlerFactory;
@@ -42,9 +40,6 @@ import org.osgi.service.component.annotations.Reference;
 @NonNullByDefault
 @Component(configurationPid = "binding.skyq", service = ThingHandlerFactory.class)
 public class SkyQHandlerFactory extends BaseThingHandlerFactory {
-
-    private @NonNullByDefault({}) UpnpIOService upnpIOService;
-    private @NonNullByDefault({}) UpnpService upnpService;
 
     private static final Set<ThingTypeUID> SUPPORTED_THING_TYPES_UIDS = Set.of(THING_TYPE_SKYQ);
     private final WebSocketClient webSocketClient;
@@ -71,28 +66,9 @@ public class SkyQHandlerFactory extends BaseThingHandlerFactory {
         ThingTypeUID thingTypeUID = thing.getThingTypeUID();
 
         if (THING_TYPE_SKYQ.equals(thingTypeUID)) {
-            return new SkyQHandler(thing, webSocketClient, httpClient, stateDescriptionProvider, upnpIOService,
-                    upnpService);
+            return new SkyQHandler(thing, webSocketClient, httpClient, stateDescriptionProvider);
         }
 
         return null;
-    }
-
-    @Reference
-    protected void setUpnpIOService(UpnpIOService upnpIOService) {
-        this.upnpIOService = upnpIOService;
-    }
-
-    protected void unsetUpnpIOService(UpnpIOService upnpIOService) {
-        this.upnpIOService = null;
-    }
-
-    @Reference
-    protected void setUpnpService(UpnpService upnpService) {
-        this.upnpService = upnpService;
-    }
-
-    protected void unsetUpnpService(UpnpService upnpService) {
-        this.upnpService = null;
     }
 }
