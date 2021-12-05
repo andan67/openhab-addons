@@ -33,4 +33,8 @@ public class SkyQBindingConstants {
     public static final String CHANNEL_GROUP_CONTROL = "control";
     public static final String CHANNEL_CONTROL_COMMAND = "controlCommand";
     public static final String CHANNEL_PRESET = "channelPreset";
+
+    public static final String CHANNEL_GROUP_STATUS = "statusChannels";
+    public static final String CHANNEL_CURRENT_CHANNEL_TITLE = "currentChannelTitle";
+    public static final String CHANNEL_POWER_STATUS = "powerStatus";
 }

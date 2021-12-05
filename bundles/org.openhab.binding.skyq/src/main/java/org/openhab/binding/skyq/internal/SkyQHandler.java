@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -37,10 +38,13 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.openhab.binding.skyq.internal.models.MediaInfo;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
+import org.openhab.binding.skyq.internal.protocols.UpnpProtocol;
 import org.openhab.core.OpenHAB;
+import org.openhab.core.library.types.StringType;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -71,8 +75,9 @@ public class SkyQHandler extends BaseThingHandler {
 
     private @Nullable ControlProtocol controlProtocol;
     private @Nullable RESTProtocol restProtocol;
+    private @Nullable UpnpProtocol upnpProtocol;
 
-    private Map<String, String> sidDispNumMap = new HashMap<>();
+    private Map<String, SkyChannel> sidToSkyChannelMap = new LinkedHashMap<>();
 
     public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient,
             SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
@@ -103,6 +108,7 @@ public class SkyQHandler extends BaseThingHandler {
 
         if (command instanceof RefreshType) {
             // TODO: handle data refresh
+            logger.debug("Refresh command for {}", channelUID);
             return;
         }
 
@@ -122,7 +128,6 @@ public class SkyQHandler extends BaseThingHandler {
             case CHANNEL_PRESET:
                 logger.debug("Handle command : {}", command.toString());
                 if (restProtocol != null) {
-                    // restProtocol.getChannels();
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
                         refreshPresetChannelStateDescription();
                     } else {
@@ -144,16 +149,7 @@ public class SkyQHandler extends BaseThingHandler {
         if (isReachable()) {
             restProtocol = new RESTProtocol(config.hostname, httpClient);
             refreshPresetChannelStateDescription();
-            /*
-             * if (skyChannels != null && !skyChannels.isEmpty()) {
-             * final List<StateOption> options = skyChannels.stream().map(c -> new StateOption(c.dispNum, c.title))
-             * .collect(Collectors.toList());
-             * stateDescriptionProvider.setStateOptions(
-             * new ChannelUID(getThing().getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
-             * options);
-             * }
-             */
-
+            upnpProtocol = new UpnpProtocol(config.hostname, httpClient);
             controlProtocol = new ControlProtocol(config.hostname);
             updateStatus(ThingStatus.ONLINE);
         } else {
@@ -170,7 +166,9 @@ public class SkyQHandler extends BaseThingHandler {
         List<SkyChannel> skyChannels = restProtocol.getChannels();
         if (skyChannels == null || skyChannels.isEmpty())
             return;
-        sidDispNumMap.clear();
+        sidToSkyChannelMap = skyChannels.stream()
+                .collect(Collectors.toMap(s -> s.id, s -> s, (o1, o2) -> o1, LinkedHashMap::new));
+        // sidToSkyChannelMap.clear();
         final List<StateOption> stateOptions = new ArrayList<>();
 
         if (config != null && config.configurablePresets) {
@@ -209,7 +207,7 @@ public class SkyQHandler extends BaseThingHandler {
                 if (dispNum != null && !dispNum.isEmpty()) {
                     si = Optional.of(new StateOption(dispNum, title));
                 }
-                sidDispNumMap.put(e.id, e.dispNum);
+                // sidToSkyChannelMap.put(e.id, e);
                 return si;
             }).filter(Optional::isPresent).map(Optional::get)
                     .filter(a -> (rankMap.getOrDefault(a.getValue(), Integer.MAX_VALUE)) >= 0)
@@ -239,7 +237,7 @@ public class SkyQHandler extends BaseThingHandler {
         } else {
             final List<StateOption> stateOptionsToAdd = skyChannels.stream().map(c -> {
                 StateOption si = new StateOption(c.dispNum, c.title);
-                sidDispNumMap.put(c.id, c.dispNum);
+                // sidToSkyChannelMap.put(c.id, c);
                 return si;
             }).collect(Collectors.toList());
             stateOptions.addAll(stateOptionsToAdd);
@@ -256,6 +254,7 @@ public class SkyQHandler extends BaseThingHandler {
         super.updateStatus(status, statusDetail, description);
         config = getConfigAs(SkyQConfiguration.class);
         if (status == ThingStatus.ONLINE) {
+            schedulePolling();
             scheduleCheckStatus();
         } else if (status == ThingStatus.UNKNOWN) {
             // probably in the process of reconnecting - ignore
@@ -332,6 +331,76 @@ public class SkyQHandler extends BaseThingHandler {
                             "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
                 }
             }, config.checkStatusInterval, TimeUnit.SECONDS)));
+        }
+    }
+
+    /**
+     * Starts the polling process. The polling process will refresh the state of the device if the refresh time (in
+     * seconds) is greater than 0. This process will continue until cancelled.
+     */
+    private void schedulePolling() {
+        if (config.refreshInterval > 0) {
+            logger.debug("Starting state polling every {} seconds", config.refreshInterval);
+            cancel(refreshState.getAndSet(this.scheduler.scheduleWithFixedDelay(new RefreshState(), 0,
+                    config.refreshInterval, TimeUnit.SECONDS)));
+        } else {
+            logger.debug("Refresh not a positive number - polling has been disabled");
+        }
+    }
+
+    /**
+     * This helper class is used to manage refreshing of the state
+     */
+    private class RefreshState implements Runnable {
+
+        // boolean indicating if the refresh is the first refresh after going online
+        private boolean initial = true;
+
+        @Override
+        public void run() {
+            // throw exceptions to prevent future tasks under these circumstances
+            if (isRemoved()) {
+                throw new IllegalStateException("Thing has been removed - ending state polling");
+            }
+            if (Thread.currentThread().isInterrupted()) {
+                throw new IllegalStateException("State polling has been cancelled");
+            }
+
+            // catch the various runtime exceptions that may occur here (the biggest being ProcessingException)
+            // and handle it.
+            try {
+                if (thing.getStatus() == ThingStatus.ONLINE) {
+                    refreshState(initial);
+                    initial = false;
+                } else {
+                    initial = true;
+                }
+            } catch (final Exception ex) {
+                final @Nullable String message = ex.getMessage();
+                if (message != null && message.contains("Connection refused")) {
+                    logger.debug("Connection refused - device is probably turned off");
+                } else {
+                    logger.debug("Uncaught exception (refreshstate) : {}", ex.getMessage(), ex);
+                }
+            }
+        }
+    }
+
+    private void refreshState(boolean initial) {
+        // get current media info
+        MediaInfo mediaInfo = upnpProtocol.requestMediaInfo();
+        if (mediaInfo != null) {
+            String currentURI = mediaInfo.getCurrentURI();
+            if (currentURI.startsWith("xsi://")) {
+                String currentSid = String.valueOf(Integer.parseInt(currentURI.substring(6), 16));
+                if (currentSid != null) {
+                    SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
+                            new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
+                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+                }
+            }
         }
     }
 
