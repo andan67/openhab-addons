@@ -12,6 +12,7 @@
  */
 package org.openhab.binding.skyq.internal.protocols;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -38,7 +39,7 @@ public class RESTProtocol {
 
     static final int PROTOCOL_TIMEOUT = 1000;
     public static final int DEFAULT_PORT = 9006;
-    static final String REST_BASE_URL_PATTERN = "http://%s:%s/as/";
+    static final String REST_BASE_URL_PATTERN = "http://{0}:{1}/as/";
     static final String REST_CHANNEL_LIST = "services";
     public static final String PRESET_REFRESH = "--REFRESH--";
 
@@ -55,7 +56,7 @@ public class RESTProtocol {
     public RESTProtocol(String host, int port, HttpClient httpClient) {
         this.host = host;
         this.port = port;
-        this.baseUrl = String.format(REST_BASE_URL_PATTERN, host, port);
+        this.baseUrl = MessageFormat.format(REST_BASE_URL_PATTERN, host, Integer.toString(port));
         this.httpClient = httpClient;
     }
 
