@@ -22,6 +22,7 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
+import org.openhab.binding.skyq.internal.models.SystemInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,6 +42,7 @@ public class RESTProtocol {
     public static final int DEFAULT_PORT = 9006;
     static final String REST_BASE_URL_PATTERN = "http://{0}:{1}/as/";
     static final String REST_CHANNEL_LIST = "services";
+    static final String REST_SYSTEM_INFORMATION = "system/information";
     public static final String PRESET_REFRESH = "--REFRESH--";
 
     private final String host;
@@ -48,6 +50,12 @@ public class RESTProtocol {
     protected String baseUrl;
     private final HttpClient httpClient;
     private final Gson gson = new Gson();
+
+    public enum PowerStatus {
+        ON,
+        OFF,
+        STANDBY
+    };
 
     public RESTProtocol(String host, HttpClient httpClient) {
         this(host, DEFAULT_PORT, httpClient);
@@ -58,6 +66,23 @@ public class RESTProtocol {
         this.port = port;
         this.baseUrl = MessageFormat.format(REST_BASE_URL_PATTERN, host, Integer.toString(port));
         this.httpClient = httpClient;
+    }
+
+    public SystemInformation getSystemInformation() {
+        try {
+            ContentResponse res = httpClient.GET(baseUrl + REST_SYSTEM_INFORMATION);
+            if (res.getStatus() == HttpStatus.OK_200) {
+                SystemInformation systemInformation = gson.fromJson(res.getContentAsString(), SystemInformation.class);
+                return systemInformation;
+            }
+        } catch (InterruptedException e) {
+            logger.error("{}", e.getMessage(), e);
+        } catch (ExecutionException e) {
+            logger.error("{}", e.getMessage(), e);
+        } catch (TimeoutException e) {
+            logger.error("{}", e.getMessage(), e);
+        }
+        return null;
     }
 
     public List<SkyChannel> getChannels() {
