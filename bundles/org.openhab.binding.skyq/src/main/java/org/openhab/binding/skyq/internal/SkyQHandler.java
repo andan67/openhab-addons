@@ -40,10 +40,12 @@ import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.openhab.binding.skyq.internal.models.MediaInfo;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
+import org.openhab.binding.skyq.internal.models.SystemInformation;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
 import org.openhab.binding.skyq.internal.protocols.UpnpProtocol;
 import org.openhab.core.OpenHAB;
+import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.StringType;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
@@ -113,26 +115,28 @@ public class SkyQHandler extends BaseThingHandler {
         }
 
         // TODO: handle command
-
+        logger.debug("Handle command : {}", command.toString());
         // Note: if communication with thing fails for some reason,
         // indicate that by setting the status with detail information:
         // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
         // "Could not control device at IP address x.x.x.x");
         switch (id) {
             case CHANNEL_CONTROL_COMMAND:
-                logger.debug("Handle command : {}", command.toString());
                 if (controlProtocol != null) {
                     controlProtocol.sendCommand(command.toString());
                 }
                 break;
             case CHANNEL_PRESET:
-                logger.debug("Handle command : {}", command.toString());
                 if (restProtocol != null) {
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
                         refreshPresetChannelStateDescription();
                     } else {
                         controlProtocol.sendCommand(Arrays.asList(command.toString().split("")));
                     }
+                }
+            case CHANNEL_POWER:
+                if (restProtocol != null) {
+                    controlProtocol.sendCommand(Arrays.asList("power"));
                 }
         }
     }
@@ -388,18 +392,39 @@ public class SkyQHandler extends BaseThingHandler {
 
     private void refreshState(boolean initial) {
         // get current media info
-        MediaInfo mediaInfo = upnpProtocol.requestMediaInfo();
-        if (mediaInfo != null) {
-            String currentURI = mediaInfo.getCurrentURI();
-            if (currentURI.startsWith("xsi://")) {
-                String currentSid = String.valueOf(Integer.parseInt(currentURI.substring(6), 16));
-                if (currentSid != null) {
-                    SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
-                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
-                            new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
-                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
-                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+        if (upnpProtocol != null) {
+            MediaInfo mediaInfo = upnpProtocol.requestMediaInfo();
+            if (mediaInfo != null) {
+                String currentURI = mediaInfo.getCurrentURI();
+                if (currentURI.startsWith("xsi://")) {
+                    String currentSid = String.valueOf(Integer.parseInt(currentURI.substring(6), 16));
+                    if (currentSid != null) {
+                        SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
+                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
+                                new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
+                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
+                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+                    }
                 }
+            }
+        }
+        // get current system information
+        if (restProtocol != null) {
+            SystemInformation systemInformation = restProtocol.getSystemInformation();
+            String powerState = "off";
+            if (systemInformation != null) {
+                if (systemInformation.activeStandby) {
+                    powerState = "standby";
+                } else {
+                    powerState = "on";
+                }
+            }
+            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
+                    new StringType(powerState));
+            if ("on".equals(powerState)) {
+                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), OnOffType.ON);
+            } else {
+                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), OnOffType.OFF);
             }
         }
     }

@@ -27,9 +27,11 @@ Use the UI to add the receiver as a thing and provide the following configuratio
 
 | Channel  | Type   | Description                  |
 |----------|--------|----------------------------|
-| control#controlCommand  | String | Send a control command to the device (see below)  |
-| control#channelPreset  | String | List (TV) channels from receiver and allows switch to a selected channel. The list and order of the channels can be configured through a file (see below).|
-
+| control#controlCommand  | String | Sends a remote control command to the device (see below)  |
+| control#channelPreset  | String | Holds list of channels from receiver and allows switch to a selected channel. The list and order of the channels can be configured through a file (see below).
+| control#power | Switch | Switches the receiver ON or OFF. Your receiver has in network standby for this to work.  |
+| statusChannel#currentChannelTitle | String | Shows current live TV channel title if available |
+| statusChannel#powerStatus | String | Shows power state ON, OFF, or STANDBY |
 
 ## Control commands
 
@@ -105,7 +107,12 @@ pseudo channel to the list.
 skyq.things:
 
 ```
-Thing skyq:skyqreceiver.skyq1 [ hostname="192.168.178.2", configurablePresets=true, retryInterval=60, checkStatusInterval=60, refreshInterval=30 ]
+Thing skyq:skyqreceiver:skyq1 [ hostname="192.168.178.2", configurablePresets=true, retryInterval=60, checkStatusInterval=60, refreshInterval=30 ]
+```
+
+skyq.items:
+```
+String sky_command "[%s]" {channel="skyq:skyqreceiver:skyq1:control#controlCommand"}
 ```
 
 ## Main UI Examples
