@@ -134,10 +134,14 @@ public class SkyQHandler extends BaseThingHandler {
                         controlProtocol.sendCommand(Arrays.asList(command.toString().split("")));
                     }
                 }
+                break;
             case CHANNEL_POWER:
                 if (restProtocol != null) {
                     controlProtocol.sendCommand(Arrays.asList("power"));
                 }
+                break;
+            default:
+                break;
         }
     }
 
