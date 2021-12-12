@@ -47,6 +47,7 @@ import org.openhab.binding.skyq.internal.protocols.UpnpProtocol;
 import org.openhab.core.OpenHAB;
 import org.openhab.core.library.types.OnOffType;
 import org.openhab.core.library.types.StringType;
+import org.openhab.core.thing.Channel;
 import org.openhab.core.thing.ChannelUID;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingStatus;
@@ -54,7 +55,9 @@ import org.openhab.core.thing.ThingStatusDetail;
 import org.openhab.core.thing.binding.BaseThingHandler;
 import org.openhab.core.types.Command;
 import org.openhab.core.types.RefreshType;
+import org.openhab.core.types.State;
 import org.openhab.core.types.StateOption;
+import org.openhab.core.types.UnDefType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,7 +134,10 @@ public class SkyQHandler extends BaseThingHandler {
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
                         refreshPresetChannelStateDescription();
                     } else {
-                        controlProtocol.sendCommand(Arrays.asList(command.toString().split("")));
+                        List<String> commandList = new ArrayList();
+                        commandList.add("backup");
+                        commandList.addAll(Arrays.asList(command.toString().split("")));
+                        controlProtocol.sendCommand(commandList);
                     }
                 }
                 break;
@@ -148,21 +154,24 @@ public class SkyQHandler extends BaseThingHandler {
     @Override
     public void initialize() {
         logger.debug("{}: Thing initialize()", thing.getLabel());
-        cancel(retryConnection.getAndSet(this.scheduler.submit(this::doConnect)));
+        config = getConfigAs(SkyQConfiguration.class);
+        initChannels();
+        if (config == null || config.hostname == null) {
+            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, "Configuration error.");
+        } else {
+            restProtocol = new RESTProtocol(config.hostname, httpClient);
+            upnpProtocol = new UpnpProtocol(config.hostname, httpClient);
+            controlProtocol = new ControlProtocol(config.hostname);
+            cancel(retryConnection.getAndSet(this.scheduler.submit(this::doConnect)));
+        }
     }
 
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
-        config = getConfigAs(SkyQConfiguration.class);
-        if (isReachable()) {
-            restProtocol = new RESTProtocol(config.hostname, httpClient);
-            refreshPresetChannelStateDescription();
-            upnpProtocol = new UpnpProtocol(config.hostname, httpClient);
-            controlProtocol = new ControlProtocol(config.hostname);
+        if (isOnline()) {
+            // refreshPresetChannelStateDescription();
             updateStatus(ThingStatus.ONLINE);
         } else {
-            controlProtocol = null;
-            restProtocol = null;
             logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", config.hostname);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to device: not reachable");
@@ -171,6 +180,7 @@ public class SkyQHandler extends BaseThingHandler {
     }
 
     private void refreshPresetChannelStateDescription() {
+        logger.info("Refreshing presets");
         List<SkyChannel> skyChannels = restProtocol.getChannels();
         if (skyChannels == null || skyChannels.isEmpty())
             return;
@@ -263,12 +273,11 @@ public class SkyQHandler extends BaseThingHandler {
         config = getConfigAs(SkyQConfiguration.class);
         if (status == ThingStatus.ONLINE) {
             schedulePolling();
-            scheduleCheckStatus();
+            // scheduleCheckStatus();
         } else if (status == ThingStatus.UNKNOWN) {
             // probably in the process of reconnecting - ignore
             logger.trace("Ignoring thing status of UNKNOWN");
         } else {
-            controlProtocol = null;
             cancel(refreshState.getAndSet(null));
             cancel(checkStatus.getAndSet(null));
 
@@ -306,8 +315,21 @@ public class SkyQHandler extends BaseThingHandler {
         return false;
     }
 
+    /**
+     * Checks if device is online
+     *
+     * @return true if device is online, otherweise false
+     */
+    private boolean isOnline() {
+        if (restProtocol != null) {
+            SystemInformation systemInformation = restProtocol.getSystemInformation();
+            return systemInformation != null;
+        }
+        return false;
+    }
+
     private void scheduleReconnect() {
-        if (config.retryInterval > 0) {
+        if (config != null && config.retryInterval > 0) {
             cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!Thread.currentThread().isInterrupted() && !isRemoved()) {
                     logger.debug("Do reconnect for {}", thing.getLabel());
@@ -316,29 +338,6 @@ public class SkyQHandler extends BaseThingHandler {
             }, config.retryInterval, TimeUnit.SECONDS)));
         } else {
             logger.debug("Retry connection has been disabled via configuration setting");
-        }
-    }
-
-    private void scheduleCheckStatus() {
-        if (config.hostname != null && !config.hostname.isEmpty() && config.checkStatusInterval > 0) {
-
-            cancel(checkStatus.getAndSet(scheduler.schedule(() -> {
-                try {
-                    if (!Thread.currentThread().isInterrupted() && !isRemoved()) {
-                        try (Socket soc = new Socket()) {
-                            soc.connect(new InetSocketAddress(config.hostname, ControlProtocol.DEFAULT_PORT), 3000);
-                        }
-                        logger.debug("Checking connectivity to {}:{} - successful", config.hostname,
-                                ControlProtocol.DEFAULT_PORT);
-                        scheduleCheckStatus();
-                    }
-                } catch (final IOException ex) {
-                    logger.debug("Checking connectivity to {}:{} - unsuccessful - going offline: {}", config.hostname,
-                            ControlProtocol.DEFAULT_PORT, ex.getMessage(), ex);
-                    updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                            "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
-                }
-            }, config.checkStatusInterval, TimeUnit.SECONDS)));
         }
     }
 
@@ -394,7 +393,54 @@ public class SkyQHandler extends BaseThingHandler {
         }
     }
 
+    private void initChannels() {
+        for (Channel channel : thing.getChannels()) {
+            ChannelUID channelUID = channel.getUID();
+            if (isLinked(channelUID)) {
+                String id = channelUID.getIdWithoutGroup();
+                switch (id) {
+                    case CHANNEL_PRESET:
+                        if (config != null && config.configurablePresets) {
+                            final List<StateOption> stateOptions = new ArrayList<>();
+                            stateOptions.add(0,
+                                    new StateOption(RESTProtocol.PRESET_REFRESH, RESTProtocol.PRESET_REFRESH));
+                            stateDescriptionProvider.setStateOptions(channelUID, stateOptions);
+                        } else {
+                            updateState(channelUID, UnDefType.UNDEF);
+                        }
+                        break;
+                    default:
+                        updateState(channelUID, UnDefType.UNDEF);
+                        break;
+                }
+            }
+        }
+    }
+
     private void refreshState(boolean initial) {
+        // get current system information
+        if (restProtocol != null) {
+            SystemInformation systemInformation = restProtocol.getSystemInformation();
+            State powerState = UnDefType.UNDEF;
+            if (systemInformation != null) {
+                if (systemInformation.activeStandby) {
+                    powerState = OnOffType.OFF;
+                } else {
+                    powerState = OnOffType.ON;
+                }
+            }
+            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
+                    new StringType(powerState.toString()));
+            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), powerState);
+            if (systemInformation == null) {
+                // offline
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                        "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
+            }
+            if (initial || sidToSkyChannelMap.isEmpty()) {
+                refreshPresetChannelStateDescription();
+            }
+        }
         // get current media info
         if (upnpProtocol != null) {
             MediaInfo mediaInfo = upnpProtocol.requestMediaInfo();
@@ -410,25 +456,6 @@ public class SkyQHandler extends BaseThingHandler {
                                 new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
                     }
                 }
-            }
-        }
-        // get current system information
-        if (restProtocol != null) {
-            SystemInformation systemInformation = restProtocol.getSystemInformation();
-            String powerState = "off";
-            if (systemInformation != null) {
-                if (systemInformation.activeStandby) {
-                    powerState = "standby";
-                } else {
-                    powerState = "on";
-                }
-            }
-            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
-                    new StringType(powerState));
-            if ("on".equals(powerState)) {
-                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), OnOffType.ON);
-            } else {
-                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), OnOffType.OFF);
             }
         }
     }

@@ -69,8 +69,6 @@ public class UpnpProtocol {
         xStream.setClassLoader(getClass().getClassLoader());
         xStream.ignoreUnknownElements();
         xStream.processAnnotations(new Class[] { ServiceDescription.class, MediaInfo.class });
-
-        playService = findPlayService();
     }
 
     private ServiceDescription.Service findPlayService() {
@@ -98,23 +96,29 @@ public class UpnpProtocol {
     }
 
     public MediaInfo requestMediaInfo() {
-        String url = MessageFormat.format(SOAP_CONTROL_BASE_URL, host, playService.controlURL);
-        String soapAction = MessageFormat.format(SOAP_ACTION, UPNP_GET_MEDIA_INFO);
-        String soapPayload = MessageFormat.format(SOAP_PAYLOAD, UPNP_GET_MEDIA_INFO);
-        Request req = httpClient.newRequest(url);
-        req.agent(SOAP_USER_AGENT);
-        req.method(HttpMethod.POST);
-        req.header("SOAPACTION", soapAction);
-        req.header(HttpHeader.CONTENT_TYPE, "text/xml");
-        req.content(new StringContentProvider(soapPayload));
-        try {
-            ContentResponse res = req.send();
-            if (res.getStatus() == HttpStatus.OK_200) {
-                MediaInfo mediaInfo = (MediaInfo) xStream.fromXML(res.getContentAsString());
-                return mediaInfo;
+        // lazy find play service
+        if (playService == null) {
+            playService = findPlayService();
+        }
+        if (playService != null) {
+            String url = MessageFormat.format(SOAP_CONTROL_BASE_URL, host, playService.controlURL);
+            String soapAction = MessageFormat.format(SOAP_ACTION, UPNP_GET_MEDIA_INFO);
+            String soapPayload = MessageFormat.format(SOAP_PAYLOAD, UPNP_GET_MEDIA_INFO);
+            Request req = httpClient.newRequest(url);
+            req.agent(SOAP_USER_AGENT);
+            req.method(HttpMethod.POST);
+            req.header("SOAPACTION", soapAction);
+            req.header(HttpHeader.CONTENT_TYPE, "text/xml");
+            req.content(new StringContentProvider(soapPayload));
+            try {
+                ContentResponse res = req.send();
+                if (res.getStatus() == HttpStatus.OK_200) {
+                    MediaInfo mediaInfo = (MediaInfo) xStream.fromXML(res.getContentAsString());
+                    return mediaInfo;
+                }
+            } catch (InterruptedException | TimeoutException | ExecutionException ex) {
+                return null;
             }
-        } catch (InterruptedException | TimeoutException | ExecutionException ex) {
-            return null;
         }
         return null;
     }
