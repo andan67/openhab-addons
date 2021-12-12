@@ -75,12 +75,9 @@ public class RESTProtocol {
                 SystemInformation systemInformation = gson.fromJson(res.getContentAsString(), SystemInformation.class);
                 return systemInformation;
             }
-        } catch (InterruptedException e) {
-            logger.error("{}", e.getMessage(), e);
-        } catch (ExecutionException e) {
-            logger.error("{}", e.getMessage(), e);
-        } catch (TimeoutException e) {
-            logger.error("{}", e.getMessage(), e);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            // logger.error("{}", e.getMessage(), e);
+            return null;
         }
         return null;
     }
@@ -97,13 +94,10 @@ public class RESTProtocol {
                 return channels;
             }
             // logger.info("{}", res.getContentAsString());
-        } catch (InterruptedException e) {
-            logger.error("{}", e.getMessage(), e);
-        } catch (ExecutionException e) {
-            logger.error("{}", e.getMessage(), e);
-        } catch (TimeoutException e) {
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
             logger.error("{}", e.getMessage(), e);
         }
+        // return empty list in case of error
         return new ArrayList<SkyChannel>();
     }
 }
