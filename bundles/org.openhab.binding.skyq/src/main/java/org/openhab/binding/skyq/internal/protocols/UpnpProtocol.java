@@ -69,6 +69,11 @@ public class UpnpProtocol {
         xStream.setClassLoader(getClass().getClassLoader());
         xStream.ignoreUnknownElements();
         xStream.processAnnotations(new Class[] { ServiceDescription.class, MediaInfo.class });
+        this.findServices();
+    }
+
+    public void findServices() {
+        playService = findPlayService();
     }
 
     private ServiceDescription.Service findPlayService() {

@@ -59,11 +59,8 @@
 		<channels>
 			<channel id="controlCommand" typeId="controlCommand"/>
 			<channel id="channelPreset" typeId="channelPreset"/>
+			<channel id="channelFavorites" typeId="channelFavorites"/>
 			<channel id="power" typeId="power"/>
-			<!--
-				We will provide an input channel dynamically.
-				<channel id="input" typeId="channelPreset" />
-			-->
 		</channels>
 	</channel-group-type>
 
@@ -71,6 +68,12 @@
 		<item-type>String</item-type>
 		<label>Channel Preset</label>
 		<description>Select channel from preset</description>
+	</channel-type>
+
+	<channel-type id="channelFavorites">
+		<item-type>String</item-type>
+		<label>Favorite Channels</label>
+		<description>Select channel from favorites</description>
 	</channel-type>
 
 	<channel-type id="power">

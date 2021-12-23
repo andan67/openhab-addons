@@ -15,8 +15,6 @@ package org.openhab.binding.skyq.internal;
 import static org.openhab.binding.skyq.internal.SkyQBindingConstants.*;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -38,6 +36,7 @@ import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.openhab.binding.skyq.internal.models.Favorite;
 import org.openhab.binding.skyq.internal.models.MediaInfo;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.models.SystemInformation;
@@ -84,6 +83,8 @@ public class SkyQHandler extends BaseThingHandler {
 
     private Map<String, SkyChannel> sidToSkyChannelMap = new LinkedHashMap<>();
 
+    State powerState = UnDefType.UNDEF;
+
     public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient,
             SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
         super(thing);
@@ -117,7 +118,6 @@ public class SkyQHandler extends BaseThingHandler {
             return;
         }
 
-        // TODO: handle command
         logger.debug("Handle command : {}", command.toString());
         // Note: if communication with thing fails for some reason,
         // indicate that by setting the status with detail information:
@@ -130,9 +130,10 @@ public class SkyQHandler extends BaseThingHandler {
                 }
                 break;
             case CHANNEL_PRESET:
+            case CHANNEL_FAVORITES:
                 if (restProtocol != null) {
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
-                        refreshPresetChannelStateDescription();
+                        refreshSkyChannels();
                     } else {
                         List<String> commandList = new ArrayList();
                         commandList.add("backup");
@@ -143,7 +144,13 @@ public class SkyQHandler extends BaseThingHandler {
                 break;
             case CHANNEL_POWER:
                 if (restProtocol != null) {
-                    controlProtocol.sendCommand(Arrays.asList("power"));
+                    if (command instanceof OnOffType) {
+                        if ((command.equals(OnOffType.ON) && !powerState.equals(OnOffType.ON)
+                                || command.equals(OnOffType.OFF) && powerState.equals(OnOffType.ON))) {
+                            controlProtocol.sendCommand(Arrays.asList("power"));
+                            powerState = (OnOffType) command;
+                        }
+                    }
                 }
                 break;
             default:
@@ -169,7 +176,8 @@ public class SkyQHandler extends BaseThingHandler {
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
         if (isOnline()) {
-            // refreshPresetChannelStateDescription();
+            // The control url for the upnp services may change over time, so get actual values on start-up
+            upnpProtocol.findServices();
             updateStatus(ThingStatus.ONLINE);
         } else {
             logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", config.hostname);
@@ -179,15 +187,15 @@ public class SkyQHandler extends BaseThingHandler {
         }
     }
 
-    private void refreshPresetChannelStateDescription() {
-        logger.info("Refreshing presets");
+    private void refreshSkyChannels() {
+        logger.info("Refreshing channels/services from SkyQ");
         List<SkyChannel> skyChannels = restProtocol.getChannels();
         if (skyChannels == null || skyChannels.isEmpty())
             return;
         sidToSkyChannelMap = skyChannels.stream()
                 .collect(Collectors.toMap(s -> s.id, s -> s, (o1, o2) -> o1, LinkedHashMap::new));
         // sidToSkyChannelMap.clear();
-        final List<StateOption> stateOptions = new ArrayList<>();
+        List<StateOption> stateOptions = new ArrayList<>();
 
         if (config != null && config.configurablePresets) {
             final Path path = Paths.get(OpenHAB.getUserDataFolder(), "config", "skyq", "channel_presets.csv");
@@ -264,6 +272,22 @@ public class SkyQHandler extends BaseThingHandler {
         stateOptions.add(0, new StateOption(RESTProtocol.PRESET_REFRESH, RESTProtocol.PRESET_REFRESH));
         stateDescriptionProvider.setStateOptions(
                 new ChannelUID(getThing().getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET), stateOptions);
+
+        // fill favorite channels
+        List<Favorite> favorites = restProtocol.getFavorites();
+        if (favorites == null || favorites.isEmpty())
+            return;
+        stateOptions = new ArrayList<>();
+        final List<StateOption> stateOptionsToAdd = favorites.stream().map(f -> {
+            SkyChannel c = sidToSkyChannelMap.get(f.id);
+            StateOption si = new StateOption(c != null ? c.dispNum : "000", c != null ? c.title : "");
+            // sidToSkyChannelMap.put(c.id, c);
+            return si;
+        }).collect(Collectors.toList());
+        stateOptions.add(new StateOption(RESTProtocol.PRESET_REFRESH, RESTProtocol.PRESET_REFRESH));
+        stateOptions.addAll(stateOptionsToAdd);
+        stateDescriptionProvider.setStateOptions(
+                new ChannelUID(getThing().getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES), stateOptions);
     }
 
     @Override
@@ -295,24 +319,6 @@ public class SkyQHandler extends BaseThingHandler {
     public void handleConfigurationUpdate(Map<String, Object> configurationParameters) {
         super.handleConfigurationUpdate(configurationParameters);
         logger.debug("{}: Thing config updated, re-initialize", thing.getLabel());
-    }
-
-    /**
-     * Checks if device is reachable
-     *
-     * @return true if device is reachable, otherweise false
-     */
-    private boolean isReachable() {
-        if (config.hostname != null && !config.hostname.isEmpty()) {
-            try (Socket soc = new Socket()) {
-                // return InetAddress.getByName(config.hostname).isReachable(500);
-                soc.connect(new InetSocketAddress(config.hostname, ControlProtocol.DEFAULT_PORT), 3000);
-                return true;
-            } catch (IOException ex) {
-                return false;
-            }
-        }
-        return false;
     }
 
     /**
@@ -421,13 +427,14 @@ public class SkyQHandler extends BaseThingHandler {
         // get current system information
         if (restProtocol != null) {
             SystemInformation systemInformation = restProtocol.getSystemInformation();
-            State powerState = UnDefType.UNDEF;
             if (systemInformation != null) {
                 if (systemInformation.activeStandby) {
                     powerState = OnOffType.OFF;
                 } else {
                     powerState = OnOffType.ON;
                 }
+            } else {
+                powerState = UnDefType.UNDEF;
             }
             updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
                     new StringType(powerState.toString()));
@@ -438,7 +445,7 @@ public class SkyQHandler extends BaseThingHandler {
                         "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
             }
             if (initial || sidToSkyChannelMap.isEmpty()) {
-                refreshPresetChannelStateDescription();
+                refreshSkyChannels();
             }
         }
         // get current media info
@@ -453,6 +460,8 @@ public class SkyQHandler extends BaseThingHandler {
                         updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
                                 new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
                         updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
+                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES),
                                 new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
                     }
                 }
