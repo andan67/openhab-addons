@@ -21,6 +21,7 @@ import java.util.concurrent.TimeoutException;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.http.HttpStatus;
+import org.openhab.binding.skyq.internal.models.Favorite;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.models.SystemInformation;
 import org.slf4j.Logger;
@@ -42,6 +43,7 @@ public class RESTProtocol {
     public static final int DEFAULT_PORT = 9006;
     static final String REST_BASE_URL_PATTERN = "http://{0}:{1}/as/";
     static final String REST_CHANNEL_LIST = "services";
+    static final String REST_FAVORITE_LIST = "services/favourites";
     static final String REST_SYSTEM_INFORMATION = "system/information";
     public static final String PRESET_REFRESH = "--REFRESH--";
 
@@ -99,5 +101,24 @@ public class RESTProtocol {
         }
         // return empty list in case of error
         return new ArrayList<SkyChannel>();
+    }
+
+    public List<Favorite> getFavorites() {
+        try {
+            ContentResponse res = httpClient.GET(baseUrl + REST_FAVORITE_LIST);
+            if (res.getStatus() == HttpStatus.OK_200) {
+                JsonElement jsonElement = JsonParser.parseString(res.getContentAsString());
+                List<Favorite> favorites = gson.fromJson(
+                        jsonElement.getAsJsonObject().get("favourites").getAsJsonArray(),
+                        new TypeToken<List<Favorite>>() {
+                        }.getType());
+                return favorites;
+            }
+            // logger.info("{}", res.getContentAsString());
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            logger.error("{}", e.getMessage(), e);
+        }
+        // return empty list in case of error
+        return new ArrayList<Favorite>();
     }
 }
