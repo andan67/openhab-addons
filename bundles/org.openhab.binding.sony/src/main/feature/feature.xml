@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <features name="org.openhab.binding.sony-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.4.0">
 
-	<feature name="openhab-binding-sony" description="Sony Binding" version="${project.version}">
+	<feature name="oh-marketplace-binding-sony" description="Sony Binding" version="${project.version}">
 		<feature>openhab-runtime-base</feature>
 		<feature>openhab-transport-upnp</feature>
 		<bundle dependency="true">mvn:org.openhab.addons.bundles/org.openhab.transform.map/${project.version}</bundle>
