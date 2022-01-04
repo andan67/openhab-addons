@@ -140,6 +140,7 @@
 		<channels>
 			<channel id="currentChannelTitle" typeId="currentChannelTitle"/>
 			<channel id="powerStatus" typeId="powerStatus"/>
+			<channel id="currentTransportState" typeId="currentTransportState"/>
 		</channels>
 	</channel-group-type>
 
@@ -147,6 +148,12 @@
 		<item-type>String</item-type>
 		<label>Current Channel Title</label>
 		<description>Title of current channel</description>
+	</channel-type>
+
+	<channel-type id="currentTransportState">
+		<item-type>String</item-type>
+		<label>Current Transport State</label>
+		<description>State of current transport stream (PLAYING, PAUSE etc)</description>
 	</channel-type>
 
 	<channel-type id="powerStatus">

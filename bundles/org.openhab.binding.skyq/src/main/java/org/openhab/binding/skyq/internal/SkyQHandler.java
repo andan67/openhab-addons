@@ -40,6 +40,7 @@ import org.openhab.binding.skyq.internal.models.Favorite;
 import org.openhab.binding.skyq.internal.models.MediaInfo;
 import org.openhab.binding.skyq.internal.models.SkyChannel;
 import org.openhab.binding.skyq.internal.models.SystemInformation;
+import org.openhab.binding.skyq.internal.models.TransportInfo;
 import org.openhab.binding.skyq.internal.protocols.ControlProtocol;
 import org.openhab.binding.skyq.internal.protocols.RESTProtocol;
 import org.openhab.binding.skyq.internal.protocols.UpnpProtocol;
@@ -303,7 +304,7 @@ public class SkyQHandler extends BaseThingHandler {
             logger.trace("Ignoring thing status of UNKNOWN");
         } else {
             cancel(refreshState.getAndSet(null));
-            cancel(checkStatus.getAndSet(null));
+            // cancel(checkStatus.getAndSet(null));
 
             // don't bother reconnecting - won't fix a configuration error
             if (statusDetail != ThingStatusDetail.CONFIGURATION_ERROR) {
@@ -366,7 +367,6 @@ public class SkyQHandler extends BaseThingHandler {
      */
     private class RefreshState implements Runnable {
 
-        // boolean indicating if the refresh is the first refresh after going online
         private boolean initial = true;
 
         @Override
@@ -379,8 +379,6 @@ public class SkyQHandler extends BaseThingHandler {
                 throw new IllegalStateException("State polling has been cancelled");
             }
 
-            // catch the various runtime exceptions that may occur here (the biggest being ProcessingException)
-            // and handle it.
             try {
                 if (thing.getStatus() == ThingStatus.ONLINE) {
                     refreshState(initial);
@@ -466,18 +464,19 @@ public class SkyQHandler extends BaseThingHandler {
                     }
                 }
             }
+            TransportInfo transportInfo = upnpProtocol.requestTransportInfo();
+            if (transportInfo != null) {
+                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_TRANSPORT_STATE),
+                        new StringType(transportInfo.getCurrentTransportState() != null
+                                ? transportInfo.getCurrentTransportState()
+                                : "UNDEF"));
+            }
         }
     }
 
     private static void cancel(final @Nullable Future<?> future) {
         if (future != null) {
             future.cancel(true);
-        }
-    }
-
-    private static void checkInterrupt() throws InterruptedException {
-        if (Thread.currentThread().isInterrupted()) {
-            throw new InterruptedException("thread interrupted");
         }
     }
 
@@ -497,6 +496,6 @@ public class SkyQHandler extends BaseThingHandler {
         logger.debug("Disposing {}", thing.getLabel());
         cancel(refreshState.getAndSet(null));
         cancel(retryConnection.getAndSet(null));
-        cancel(checkStatus.getAndSet(null));
+        // cancel(checkStatus.getAndSet(null));
     }
 }
