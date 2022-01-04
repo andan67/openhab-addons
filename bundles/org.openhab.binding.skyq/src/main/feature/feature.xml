@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <features name="org.openhab.binding.skyq-${project.version}" xmlns="http://karaf.apache.org/xmlns/features/v1.4.0">
-	<feature name="openhab-binding-skyq" description="skyq Binding" version="${project.version}">
+	<feature name="oh-marketplace-binding-skyq" description="Sky Q Receiver Binding" version="${project.version}">
 		<feature>openhab-runtime-base</feature>
 		<bundle start-level="80">mvn:org.openhab.addons.bundles/org.openhab.binding.skyq/${project.version}</bundle>
 	</feature>
