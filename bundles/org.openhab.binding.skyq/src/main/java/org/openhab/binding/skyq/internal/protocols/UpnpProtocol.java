@@ -26,6 +26,8 @@ import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.skyq.internal.SkyQHandlerFactory;
 import org.openhab.binding.skyq.internal.models.MediaInfo;
 import org.openhab.binding.skyq.internal.models.ServiceDescription;
+import org.openhab.binding.skyq.internal.models.SoapResponse;
+import org.openhab.binding.skyq.internal.models.TransportInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +70,8 @@ public class UpnpProtocol {
         xStream.allowTypesByWildcard(new String[] { SkyQHandlerFactory.class.getPackageName() + ".**" });
         xStream.setClassLoader(getClass().getClassLoader());
         xStream.ignoreUnknownElements();
-        xStream.processAnnotations(new Class[] { ServiceDescription.class, MediaInfo.class });
+        xStream.processAnnotations(
+                new Class[] { ServiceDescription.class, SoapResponse.class, MediaInfo.class, TransportInfo.class });
         this.findServices();
     }
 
@@ -100,31 +103,51 @@ public class UpnpProtocol {
         return null;
     }
 
+    public TransportInfo requestTransportInfo() {
+
+        return requestAction(UPNP_GET_TRANSPORT_INFO).getTransportInfo();
+    }
+
     public MediaInfo requestMediaInfo() {
-        // lazy find play service
-        if (playService == null) {
-            playService = findPlayService();
-        }
-        if (playService != null) {
-            String url = MessageFormat.format(SOAP_CONTROL_BASE_URL, host, playService.controlURL);
-            String soapAction = MessageFormat.format(SOAP_ACTION, UPNP_GET_MEDIA_INFO);
-            String soapPayload = MessageFormat.format(SOAP_PAYLOAD, UPNP_GET_MEDIA_INFO);
-            Request req = httpClient.newRequest(url);
-            req.agent(SOAP_USER_AGENT);
-            req.method(HttpMethod.POST);
-            req.header("SOAPACTION", soapAction);
-            req.header(HttpHeader.CONTENT_TYPE, "text/xml");
-            req.content(new StringContentProvider(soapPayload));
-            try {
-                ContentResponse res = req.send();
-                if (res.getStatus() == HttpStatus.OK_200) {
-                    MediaInfo mediaInfo = (MediaInfo) xStream.fromXML(res.getContentAsString());
-                    return mediaInfo;
+
+        return requestAction(UPNP_GET_MEDIA_INFO).getMediaInfo();
+    }
+
+    private SoapResponse requestAction(String action) {
+        boolean isRetry = false;
+        do {
+            if (playService != null) {
+                String url = MessageFormat.format(SOAP_CONTROL_BASE_URL, host, playService.controlURL);
+                String soapAction = MessageFormat.format(SOAP_ACTION, action);
+                String soapPayload = MessageFormat.format(SOAP_PAYLOAD, action);
+                Request req = httpClient.newRequest(url);
+                req.agent(SOAP_USER_AGENT);
+                req.method(HttpMethod.POST);
+                req.header("SOAPACTION", soapAction);
+                req.header(HttpHeader.CONTENT_TYPE, "text/xml");
+                req.content(new StringContentProvider(soapPayload));
+                try {
+                    ContentResponse res = req.send();
+                    if (res.getStatus() == HttpStatus.OK_200) {
+                        return (SoapResponse) xStream.fromXML(res.getContentAsString());
+                    }
+                    if (res.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR_500) {
+                        // Set flag to perform one retry if not already set
+                        // This handles the situation where the the controlURL has changed over time
+                        // and needs to be refreshed from the findPlayService call further below
+                        isRetry = !isRetry;
+                    }
+                } catch (InterruptedException | TimeoutException | ExecutionException ex) {
+                    return null;
                 }
-            } catch (InterruptedException | TimeoutException | ExecutionException ex) {
-                return null;
             }
-        }
+            if (isRetry || playService == null) {
+                if (findPlayService() == null)
+                    return null;
+                // ensure that another attempt is performed, now ensuring that playService is not null
+                isRetry = true;
+            }
+        } while (isRetry);
         return null;
     }
 }

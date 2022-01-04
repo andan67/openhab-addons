@@ -31,8 +31,9 @@ Use the UI to add the receiver as a thing and provide the following configuratio
 | control#channelPreset  | String | Holds list of all channels from receiver and allows switch to a selected channel. The list and order of the channels can be configured through a file (see below).
 | control#channelFavorites  | String | Holds list of favorite channels from receiver and allows switch to a selected channel. 
 | control#power | Switch | Switches the receiver ON or OFF. Your receiver has in network standby for this to work.  |
-| statusChannel#currentChannelTitle | String | Shows current live TV channel title if available |
-| statusChannel#powerStatus | String | Shows power state ON, OFF, or STANDBY |
+| statusChannels#currentChannelTitle | String | Shows current live TV channel title if available |
+| statusChannels#powerStatus | String | Shows power state ON, OFF, or STANDBY |
+| statusChannels#currentTransportState | String | State of current transport stream (PLAYING etc) |
 
 ## Control commands
 
