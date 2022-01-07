@@ -84,6 +84,7 @@ The `control#controlCommand` channel supports the following commands that are de
 | sky | Sky ||
 
 ## Configurable channel presets
+
 To ease the selection of a large number of TV preset channels, the channels for selection can be filtered and sorted by use of a configuration file.
 This feature can be enabled by setting the thing configuration `Enable Configurable Presets` and saving the new configuration.
 
@@ -113,6 +114,7 @@ Thing skyq:skyqreceiver:skyq1 [ hostname="192.168.178.2", configurablePresets=tr
 ```
 
 skyq.items:
+
 ```
 String sky_command "[%s]" {channel="skyq:skyqreceiver:skyq1:control#controlCommand"}
 ```

@@ -10,22 +10,19 @@
  *
  * SPDX-License-Identifier: EPL-2.0
  */
-package org.openhab.binding.skyq.internal.models;
+package org.openhab.binding.skyq.internal;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 
-import com.google.gson.annotations.SerializedName;
-
 /**
- * @author andan - Initial contribution
+ * Container for static utility methods
+ *
+ * @author Andreas - Initial contribution
  */
 @NonNullByDefault
-public class Favorite {
-
-    @SerializedName(value = "lcn")
-    public @Nullable String dispNum;
-
-    @SerializedName(value = "sid")
-    public @Nullable String id;
+public class Utils {
+    public static String defaultIfEmpty(final @Nullable String str, final @Nullable String defStr) {
+        return str != null && !str.isEmpty() ? str : (defStr != null ? defStr : "");
+    }
 }

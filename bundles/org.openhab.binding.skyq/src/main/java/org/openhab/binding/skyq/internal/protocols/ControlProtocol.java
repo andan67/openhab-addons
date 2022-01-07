@@ -24,12 +24,14 @@ import java.net.Socket;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class ControlProtocol {
 
     private final Logger logger = LoggerFactory.getLogger(ControlProtocol.class);
@@ -67,8 +69,9 @@ public class ControlProtocol {
         boolean doPause = false;
         for (String command : commandList) {
             try {
-                if (doPause)
+                if (doPause) {
                     Thread.sleep(250);
+                }
                 if (COMMAND_MAP.containsKey(command)) {
                     transmitCommand(COMMAND_MAP.get(command));
                 }

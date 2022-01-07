@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -82,7 +83,7 @@ public class SkyQHandler extends BaseThingHandler {
     private @Nullable RESTProtocol restProtocol;
     private @Nullable UpnpProtocol upnpProtocol;
 
-    private Map<String, SkyChannel> sidToSkyChannelMap = new LinkedHashMap<>();
+    private Map<@Nullable String, SkyChannel> sidToSkyChannelMap = new LinkedHashMap<>();
 
     State powerState = UnDefType.UNDEF;
 
@@ -100,11 +101,6 @@ public class SkyQHandler extends BaseThingHandler {
     private final AtomicReference<@Nullable Future<?>> refreshState = new AtomicReference<>(null);
 
     /**
-     * The check status event - will only be created when we are connected.
-     */
-    private final AtomicReference<@Nullable Future<?>> checkStatus = new AtomicReference<>(null);
-
-    /**
      * The retry connection event - will only be created when we are disconnected.
      */
     private final AtomicReference<@Nullable Future<?>> retryConnection = new AtomicReference<>(null);
@@ -114,21 +110,20 @@ public class SkyQHandler extends BaseThingHandler {
         String id = channelUID.getIdWithoutGroup();
 
         if (command instanceof RefreshType) {
-            // TODO: handle data refresh
+            // TODO handle data refresh
             logger.debug("Refresh command for {}", channelUID);
             return;
         }
 
+        if (controlProtocol == null) {
+            return;
+        }
+
         logger.debug("Handle command : {}", command.toString());
-        // Note: if communication with thing fails for some reason,
-        // indicate that by setting the status with detail information:
-        // updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-        // "Could not control device at IP address x.x.x.x");
+
         switch (id) {
             case CHANNEL_CONTROL_COMMAND:
-                if (controlProtocol != null) {
-                    controlProtocol.sendCommand(command.toString());
-                }
+                controlProtocol.sendCommand(command.toString());
                 break;
             case CHANNEL_PRESET:
             case CHANNEL_FAVORITES:
@@ -136,7 +131,7 @@ public class SkyQHandler extends BaseThingHandler {
                     if (RESTProtocol.PRESET_REFRESH.equals(command.toString())) {
                         refreshSkyChannels();
                     } else {
-                        List<String> commandList = new ArrayList();
+                        List<String> commandList = new ArrayList<>();
                         commandList.add("backup");
                         commandList.addAll(Arrays.asList(command.toString().split("")));
                         controlProtocol.sendCommand(commandList);
@@ -148,7 +143,7 @@ public class SkyQHandler extends BaseThingHandler {
                     if (command instanceof OnOffType) {
                         if ((command.equals(OnOffType.ON) && !powerState.equals(OnOffType.ON)
                                 || command.equals(OnOffType.OFF) && powerState.equals(OnOffType.ON))) {
-                            controlProtocol.sendCommand(Arrays.asList("power"));
+                            controlProtocol.sendCommand(Collections.singletonList("power"));
                             powerState = (OnOffType) command;
                         }
                     }
@@ -176,31 +171,38 @@ public class SkyQHandler extends BaseThingHandler {
 
     private void doConnect() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
-        if (isOnline()) {
+        if (isOnline() && upnpProtocol != null) {
             // The control url for the upnp services may change over time, so get actual values on start-up
             upnpProtocol.findServices();
             updateStatus(ThingStatus.ONLINE);
         } else {
-            logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", config.hostname);
+            logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt",
+                    config != null ? config.hostname : "n/a");
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to device: not reachable");
-            return;
         }
     }
 
     private void refreshSkyChannels() {
         logger.info("Refreshing channels/services from SkyQ");
-        List<SkyChannel> skyChannels = restProtocol.getChannels();
-        if (skyChannels == null || skyChannels.isEmpty())
+        if (restProtocol == null) {
             return;
-        sidToSkyChannelMap = skyChannels.stream()
-                .collect(Collectors.toMap(s -> s.id, s -> s, (o1, o2) -> o1, LinkedHashMap::new));
+        }
+
+        List<SkyChannel> skyChannels = restProtocol.getChannels();
+        if (skyChannels.isEmpty()) {
+            return;
+        }
+
+        sidToSkyChannelMap = new LinkedHashMap<>();
+        skyChannels.forEach(s -> sidToSkyChannelMap.put(s.id, s));
+
         // sidToSkyChannelMap.clear();
         List<StateOption> stateOptions = new ArrayList<>();
 
         if (config != null && config.configurablePresets) {
             final Path path = Paths.get(OpenHAB.getUserDataFolder(), "config", "skyq", "channel_presets.csv");
-            HashMap<String, Integer> rankMap = new HashMap();
+            HashMap<String, Integer> rankMap = new HashMap<>();
             if (Files.exists(path)) {
                 try {
                     // regex to parse csv formatted lines (with limitations)
@@ -228,10 +230,10 @@ public class SkyQHandler extends BaseThingHandler {
             }
 
             List<StateOption> stateOptionsToAdd = skyChannels.stream().map(e -> {
-                final String title = e.title;
-                final String dispNum = e.dispNum;
+                final String title = e.title != null ? e.title : "";
+                final String dispNum = e.dispNum != null ? e.dispNum : "";
                 Optional<StateOption> si = Optional.empty();
-                if (dispNum != null && !dispNum.isEmpty()) {
+                if (!dispNum.isEmpty()) {
                     si = Optional.of(new StateOption(dispNum, title));
                 }
                 // sidToSkyChannelMap.put(e.id, e);
@@ -241,7 +243,7 @@ public class SkyQHandler extends BaseThingHandler {
                     .sorted(Comparator.<StateOption> comparingInt(a -> {
                         Integer r = rankMap.getOrDefault(a.getValue(), 0);
                         return r == 0 ? Integer.MAX_VALUE : r;
-                    }).thenComparing(a -> a.getValue())).collect(Collectors.toList());
+                    }).thenComparing(StateOption::getValue)).collect(Collectors.toList());
 
             stateOptions.addAll(stateOptionsToAdd);
 
@@ -263,8 +265,7 @@ public class SkyQHandler extends BaseThingHandler {
 
         } else {
             final List<StateOption> stateOptionsToAdd = skyChannels.stream().map(c -> {
-                StateOption si = new StateOption(c.dispNum, c.title);
-                // sidToSkyChannelMap.put(c.id, c);
+                StateOption si = new StateOption(Utils.defaultIfEmpty(c.dispNum, "000"), c.title);
                 return si;
             }).collect(Collectors.toList());
             stateOptions.addAll(stateOptionsToAdd);
@@ -276,12 +277,14 @@ public class SkyQHandler extends BaseThingHandler {
 
         // fill favorite channels
         List<Favorite> favorites = restProtocol.getFavorites();
-        if (favorites == null || favorites.isEmpty())
+        if (favorites.isEmpty()) {
             return;
+        }
+
         stateOptions = new ArrayList<>();
         final List<StateOption> stateOptionsToAdd = favorites.stream().map(f -> {
             SkyChannel c = sidToSkyChannelMap.get(f.id);
-            StateOption si = new StateOption(c != null ? c.dispNum : "000", c != null ? c.title : "");
+            StateOption si = new StateOption(Utils.defaultIfEmpty(c.dispNum, "000"), c.title);
             // sidToSkyChannelMap.put(c.id, c);
             return si;
         }).collect(Collectors.toList());
@@ -329,8 +332,7 @@ public class SkyQHandler extends BaseThingHandler {
      */
     private boolean isOnline() {
         if (restProtocol != null) {
-            SystemInformation systemInformation = restProtocol.getSystemInformation();
-            return systemInformation != null;
+            return restProtocol.getSystemInformation() != null;
         }
         return false;
     }
@@ -424,6 +426,7 @@ public class SkyQHandler extends BaseThingHandler {
     private void refreshState(boolean initial) {
         // get current system information
         if (restProtocol != null) {
+            @Nullable
             SystemInformation systemInformation = restProtocol.getSystemInformation();
             if (systemInformation != null) {
                 if (systemInformation.activeStandby) {
@@ -439,8 +442,8 @@ public class SkyQHandler extends BaseThingHandler {
             updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), powerState);
             if (systemInformation == null) {
                 // offline
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                        "Could not connect to " + config.hostname + ":" + ControlProtocol.DEFAULT_PORT);
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Could not connect to "
+                        + (config != null ? config.hostname : "n/a") + ":" + ControlProtocol.DEFAULT_PORT);
             }
             if (initial || sidToSkyChannelMap.isEmpty()) {
                 refreshSkyChannels();
@@ -448,27 +451,27 @@ public class SkyQHandler extends BaseThingHandler {
         }
         // get current media info
         if (upnpProtocol != null) {
+            @Nullable
             MediaInfo mediaInfo = upnpProtocol.requestMediaInfo();
             if (mediaInfo != null) {
-                String currentURI = mediaInfo.getCurrentURI();
-                if (currentURI.startsWith("xsi://")) {
+                @Nullable
+                String currentURI = mediaInfo.currentURI;
+                if (currentURI != null && currentURI.startsWith("xsi://")) {
                     String currentSid = String.valueOf(Integer.parseInt(currentURI.substring(6), 16));
-                    if (currentSid != null) {
-                        SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
-                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
-                                new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
-                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
-                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
-                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES),
-                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
-                    }
+                    SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
+                            new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
+                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES),
+                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
                 }
             }
+            @Nullable
             TransportInfo transportInfo = upnpProtocol.requestTransportInfo();
             if (transportInfo != null) {
                 updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_TRANSPORT_STATE),
-                        new StringType(transportInfo.getCurrentTransportState() != null
-                                ? transportInfo.getCurrentTransportState()
+                        new StringType(transportInfo.currentTransportState != null ? transportInfo.currentTransportState
                                 : "UNDEF"));
             }
         }

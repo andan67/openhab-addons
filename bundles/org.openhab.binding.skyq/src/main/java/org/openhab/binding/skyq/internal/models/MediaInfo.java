@@ -1,17 +1,19 @@
 /**
  * Copyright (c) 2010-2021 Contributors to the openHAB project
- * <p>
+ *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
- * <p>
+ *
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
  * http://www.eclipse.org/legal/epl-2.0
- * <p>
+ *
  * SPDX-License-Identifier: EPL-2.0
  */
-
 package org.openhab.binding.skyq.internal.models;
+
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
@@ -39,54 +41,27 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  *
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class MediaInfo {
 
     @XStreamAlias("NrTracks")
     int nrTracks;
 
     @XStreamAlias("MediaDuration")
-    String mediaDuration;
+    public @Nullable String mediaDuration;
 
     @XStreamAlias("CurrentURI")
-    String currentURI;
+    public @Nullable String currentURI;
 
     @XStreamAlias("CurrentURIMetaData")
-    String currentURIMetaData;
+    public @Nullable String currentURIMetaData;
 
     @XStreamAlias("PlayMedium")
-    String playMedium;
+    public @Nullable String playMedium;
 
     @XStreamAlias("RecordMedium")
-    String recordMedium;
+    public @Nullable String recordMedium;
 
     @XStreamAlias("WriteStatus")
-    String writeStatus;
-
-    public int getNrTracks() {
-        return nrTracks;
-    }
-
-    public String getMediaDuration() {
-        return mediaDuration;
-    }
-
-    public String getCurrentURI() {
-        return currentURI;
-    }
-
-    public String getCurrentUriMetaData() {
-        return currentURIMetaData;
-    }
-
-    public String getPlayMedium() {
-        return playMedium;
-    }
-
-    public String getRecordMedium() {
-        return recordMedium;
-    }
-
-    public String getWriteStatus() {
-        return writeStatus;
-    }
+    public @Nullable String writeStatus;
 }

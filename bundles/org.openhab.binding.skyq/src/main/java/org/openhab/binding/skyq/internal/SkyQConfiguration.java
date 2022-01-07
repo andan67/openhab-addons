@@ -12,19 +12,22 @@
  */
 package org.openhab.binding.skyq.internal;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+
 /**
  * The {@link SkyQConfiguration} class contains fields mapping thing configuration parameters.
  *
  * @author Andreas - Initial contribution
  */
+@NonNullByDefault
 public class SkyQConfiguration {
     public static final String HOSTNAME = "hostname";
 
     /**
      * Sample configuration parameters. Replace with your own.
      */
-    public String hostname;
-    public String deviceMacAddress;
+    public String hostname = "";
+    public String deviceMacAddress = "";
     public int refreshInterval;
     public int retryInterval;
     public int checkStatusInterval;

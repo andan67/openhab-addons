@@ -1,22 +1,36 @@
+/**
+ * Copyright (c) 2010-2021 Contributors to the openHAB project
+ *
+ * See the NOTICE file(s) distributed with this work for additional
+ * information.
+ *
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ */
 package org.openhab.binding.skyq.internal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.text.MessageFormat;
-
-import javax.xml.xpath.*;
-
+import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.junit.jupiter.api.Test;
 import org.openhab.binding.skyq.internal.models.MediaInfo;
 
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 
+/**
+ * Various unit test methods
+ *
+ * @author Andreas - Initial contribution
+ */
+@NonNullByDefault
 public class Tests {
 
     @Test
     public void testXML2Description() {
-
         XStream xStream = new XStream();
         xStream.allowTypesByWildcard(new String[] { SkyQHandlerFactory.class.getPackageName() + ".**" });
         xStream.setClassLoader(getClass().getClassLoader());
@@ -66,14 +80,7 @@ public class Tests {
     }
 
     @Test
-    public void testMessageFormat() {
-        final String template = "first value: {0}, second value: {1}, first value: {0}";
-        System.out.println(MessageFormat.format(template, "1", "2"));
-    }
-
-    @Test
     public void testSOAPResponseXML() {
-
         XStream xStream = new XStream(new StaxDriver());
         xStream.allowTypesByWildcard(new String[] { SkyQHandlerFactory.class.getPackageName() + ".**" });
         xStream.setClassLoader(getClass().getClassLoader());
@@ -85,8 +92,7 @@ public class Tests {
                 + "<CurrentURIMetaData>NOT_IMPLEMENTED</CurrentURIMetaData>\n" + "<PlayMedium>NONE</PlayMedium>\n"
                 + "<RecordMedium>NOT_IMPLEMENTED</RecordMedium>\n" + "<WriteStatus>NOT_IMPLEMENTED</WriteStatus>\n"
                 + "</u:GetMediaInfoResponse>\n" + "</s:Body> </s:Envelope>";
-        System.out.println(xml);
         MediaInfo mediaInfo = (MediaInfo) xStream.fromXML(xml);
-        System.out.println(mediaInfo.getCurrentURI());
+        assertEquals(mediaInfo.currentURI, "xsi://7A");
     }
 }

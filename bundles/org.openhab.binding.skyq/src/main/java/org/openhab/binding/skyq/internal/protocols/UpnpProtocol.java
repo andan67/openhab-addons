@@ -16,6 +16,8 @@ import java.text.MessageFormat;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.api.Request;
@@ -37,6 +39,7 @@ import com.thoughtworks.xstream.io.xml.StaxDriver;
 /**
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class UpnpProtocol {
 
     private final Logger logger = LoggerFactory.getLogger(UpnpProtocol.class);
@@ -57,10 +60,9 @@ public class UpnpProtocol {
     static final String UPNP_GET_TRANSPORT_INFO = "GetTransportInfo";
 
     private final String host;
-    protected String baseUrl;
     private final HttpClient httpClient;
-    private ServiceDescription.Service playService;
-    private XStream xStream;
+    private ServiceDescription.@Nullable Service playService;
+    private final XStream xStream;
 
     public UpnpProtocol(String host, HttpClient httpClient) {
         this.host = host;
@@ -79,7 +81,7 @@ public class UpnpProtocol {
         playService = findPlayService();
     }
 
-    private ServiceDescription.Service findPlayService() {
+    private ServiceDescription.@Nullable Service findPlayService() {
         for (int id = 0; id < 50; id++) {
             String url = MessageFormat.format(SOAP_DESCRIPTION_BASE_URL, host, Integer.toString(id));
             Request req = httpClient.newRequest(url);
@@ -103,17 +105,19 @@ public class UpnpProtocol {
         return null;
     }
 
-    public TransportInfo requestTransportInfo() {
-
-        return requestAction(UPNP_GET_TRANSPORT_INFO).getTransportInfo();
+    public @Nullable TransportInfo requestTransportInfo() {
+        @Nullable
+        SoapResponse response = requestAction(UPNP_GET_TRANSPORT_INFO);
+        return response != null ? response.getTransportInfo() : null;
     }
 
-    public MediaInfo requestMediaInfo() {
-
-        return requestAction(UPNP_GET_MEDIA_INFO).getMediaInfo();
+    public @Nullable MediaInfo requestMediaInfo() {
+        @Nullable
+        SoapResponse response = requestAction(UPNP_GET_MEDIA_INFO);
+        return response != null ? response.getMediaInfo() : null;
     }
 
-    private SoapResponse requestAction(String action) {
+    private @Nullable SoapResponse requestAction(String action) {
         boolean isRetry = false;
         do {
             if (playService != null) {
@@ -142,8 +146,12 @@ public class UpnpProtocol {
                 }
             }
             if (isRetry || playService == null) {
-                if (findPlayService() == null)
+                // Get latest state and thus latest controlURL of play service
+                playService = findPlayService();
+                if (playService == null) {
+                    // should not happen
                     return null;
+                }
                 // ensure that another attempt is performed, now ensuring that playService is not null
                 isRetry = true;
             }
