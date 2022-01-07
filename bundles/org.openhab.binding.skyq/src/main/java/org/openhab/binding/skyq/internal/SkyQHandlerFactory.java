@@ -50,7 +50,6 @@ public class SkyQHandlerFactory extends BaseThingHandlerFactory {
     public SkyQHandlerFactory(final @Reference WebSocketFactory webSocketFactory,
             final @Reference HttpClientFactory httpClientFactory,
             final @Reference SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
-
         this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
         this.httpClient = httpClientFactory.getCommonHttpClient();
         this.stateDescriptionProvider = stateDescriptionProvider;

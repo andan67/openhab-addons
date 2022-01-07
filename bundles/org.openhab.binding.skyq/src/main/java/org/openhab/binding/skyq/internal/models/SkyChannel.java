@@ -12,28 +12,32 @@
  */
 package org.openhab.binding.skyq.internal.models;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class SkyChannel {
 
     @SerializedName(value = "c")
-    public String dispNum;
+    public @Nullable String dispNum;
 
     @SerializedName(value = "t")
-    public String title;
+    public @Nullable String title;
 
     @SerializedName(value = "sf")
-    public String format;
+    public @Nullable String format;
 
     @SerializedName(value = "servicetype")
-    public String servicetype;
+    public @Nullable String servicetype;
 
     @SerializedName(value = "sg")
-    public String servicegroup;
+    public @Nullable String servicegroup;
 
     @SerializedName(value = "sid")
-    public String id;
+    public @Nullable String id;
 }

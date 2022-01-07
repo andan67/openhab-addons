@@ -15,6 +15,9 @@ package org.openhab.binding.skyq.internal.models;
 
 import java.util.List;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
@@ -78,40 +81,41 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  */
 
 @XStreamAlias("root")
+@NonNullByDefault
 public class ServiceDescription {
     @XStreamAlias("device")
-    public Device device;
+    public @Nullable Device device;
 
     @XStreamAlias("URLBase")
-    public String urlBase;
+    public @Nullable String urlBase;
 
     public static class Device {
 
         @XStreamAlias("deviceType")
-        public String deviceType;
+        public @Nullable String deviceType;
 
         @XStreamAlias("modelName")
-        public String modelName;
+        public @Nullable String modelName;
 
         @XStreamAlias("serviceList")
-        public List<Service> serviceList;
+        public @Nullable List<Service> serviceList;
     }
 
     @XStreamAlias("service")
     public static class Service {
         @XStreamAlias("serviceType")
-        public String serviceType;
+        public @Nullable String serviceType;
 
         @XStreamAlias("serviceId")
-        public String serviceId;
+        public @Nullable String serviceId;
 
         @XStreamAlias("SCPDURL")
-        public String SCPDURL;
+        public @Nullable String SCPDURL;
 
         @XStreamAlias("controlURL")
-        public String controlURL;
+        public @Nullable String controlURL;
 
         @XStreamAlias("eventSubURL")
-        public String eventSubURL;
+        public @Nullable String eventSubURL;
     }
 }

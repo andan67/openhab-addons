@@ -18,6 +18,8 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.http.HttpStatus;
@@ -35,6 +37,7 @@ import com.google.gson.reflect.TypeToken;
 /**
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class RESTProtocol {
 
     private final Logger logger = LoggerFactory.getLogger(RESTProtocol.class);
@@ -47,8 +50,6 @@ public class RESTProtocol {
     static final String REST_SYSTEM_INFORMATION = "system/information";
     public static final String PRESET_REFRESH = "--REFRESH--";
 
-    private final String host;
-    private final int port;
     protected String baseUrl;
     private final HttpClient httpClient;
     private final Gson gson = new Gson();
@@ -64,13 +65,11 @@ public class RESTProtocol {
     }
 
     public RESTProtocol(String host, int port, HttpClient httpClient) {
-        this.host = host;
-        this.port = port;
         this.baseUrl = MessageFormat.format(REST_BASE_URL_PATTERN, host, Integer.toString(port));
         this.httpClient = httpClient;
     }
 
-    public SystemInformation getSystemInformation() {
+    public @Nullable SystemInformation getSystemInformation() {
         try {
             ContentResponse res = httpClient.GET(baseUrl + REST_SYSTEM_INFORMATION);
             if (res.getStatus() == HttpStatus.OK_200) {
@@ -93,7 +92,9 @@ public class RESTProtocol {
                         jsonElement.getAsJsonObject().get("services").getAsJsonArray(),
                         new TypeToken<List<SkyChannel>>() {
                         }.getType());
-                return channels;
+                if (channels != null) {
+                    return channels;
+                }
             }
             // logger.info("{}", res.getContentAsString());
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
@@ -112,7 +113,9 @@ public class RESTProtocol {
                         jsonElement.getAsJsonObject().get("favourites").getAsJsonArray(),
                         new TypeToken<List<Favorite>>() {
                         }.getType());
-                return favorites;
+                if (favorites != null) {
+                    return favorites;
+                }
             }
             // logger.info("{}", res.getContentAsString());
         } catch (InterruptedException | ExecutionException | TimeoutException e) {

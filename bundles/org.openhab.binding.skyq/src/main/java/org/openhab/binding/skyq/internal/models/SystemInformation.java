@@ -12,11 +12,15 @@
  */
 package org.openhab.binding.skyq.internal.models;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.google.gson.annotations.SerializedName;
 
 /**
  * @author andan - Initial contribution
  */
+@NonNullByDefault
 public class SystemInformation {
 
     public enum PowerStatus {
@@ -26,10 +30,10 @@ public class SystemInformation {
     };
 
     @SerializedName(value = "IPAddress")
-    public String ipAddress;
+    public @Nullable String ipAddress;
 
     @SerializedName(value = "MACAddress")
-    public String macAddress;
+    public @Nullable String macAddress;
 
     @SerializedName(value = "systemUptime")
     public long systemUptime;

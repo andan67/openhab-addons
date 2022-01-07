@@ -13,6 +13,9 @@
 
 package org.openhab.binding.skyq.internal.models;
 
+import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jdt.annotation.Nullable;
+
 import com.thoughtworks.xstream.annotations.XStreamAlias;
 
 /**
@@ -40,24 +43,28 @@ import com.thoughtworks.xstream.annotations.XStreamAlias;
  * @author andan - Initial contribution
  */
 @XStreamAlias("Envelope")
+@NonNullByDefault
 public class SoapResponse {
 
     @XStreamAlias("Body")
+    @Nullable
     Body body;
 
     static class Body {
         @XStreamAlias("GetMediaInfoResponse")
+        @Nullable
         MediaInfo mediaInfo;
 
         @XStreamAlias("GetTransportInfoResponse")
+        @Nullable
         TransportInfo transportInfo;
     }
 
-    public MediaInfo getMediaInfo() {
-        return body.mediaInfo;
+    public @Nullable MediaInfo getMediaInfo() {
+        return body != null ? body.mediaInfo : null;
     }
 
-    public TransportInfo getTransportInfo() {
-        return body.transportInfo;
+    public @Nullable TransportInfo getTransportInfo() {
+        return body != null ? body.transportInfo : null;
     }
 }
