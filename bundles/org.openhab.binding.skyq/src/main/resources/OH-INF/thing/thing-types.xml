@@ -104,7 +104,7 @@
 				<option value="home">Home</option>
 				<option value="i">i</option>
 				<option value="text">Text</option>
-				<option value="uo">Up</option>
+				<option value="up">Up</option>
 				<option value="down">Down</option>
 				<option value="left">Left</option>
 				<option value="right">Right</option>
