@@ -318,6 +318,9 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
     /** The cached sources by scheme */
     private final ConcurrentMap<String, Set<Source>> stateSources = new ConcurrentHashMap<>();
 
+    /** The cached last played tv uris by TV source */
+    private final ConcurrentMap<String, String> lastPlayedTVUriBySource = new ConcurrentHashMap<>();
+
     /** The source uri to title mapping */
     private final ConcurrentMap<String, String> sourceUriTitleMap = new ConcurrentHashMap<>();
 
@@ -2092,6 +2095,18 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
             // only do the following for TV or RADIO schemes
             if (pciScheme != null
                     && (Scheme.TV.equalsIgnoreCase(pciScheme) || Scheme.RADIO.equalsIgnoreCase(pciScheme))) {
+
+                if (Scheme.TV.equalsIgnoreCase(pciScheme)) {
+                    // cache TV uri for later use when switching to TV source without full uri
+                    // complete pciSourceUri 'tv:dvbs' (not selectable via setPlayContent api call)
+                    final String uri = pci.getUri();
+                    if (uri != null) {
+                        lastPlayedTVUriBySource.compute(pciSourceUri, (k, v) -> v = uri);
+                        // generic tv source 'tv:' (selectable via setPlayContent api call)
+                        lastPlayedTVUriBySource.compute(Scheme.TV + ":", (k, v) -> v = uri);
+                    }
+                }
+
                 for (final Source src : getSources()) {
                     final String srcScheme = src.getSchemePart();
                     final String srcSource = src.getSourcePart();
@@ -2447,7 +2462,8 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
         }
 
         if (initial || !notificationHelper.isEnabled(ScalarWebEvent.NOTIFYPLAYINGCONTENTINFO)) {
-            if (tracker.isCategoryLinked(ctgy -> ctgy.startsWith(PLAYING))) {
+            if (tracker.isCategoryLinked(
+                    ctgy -> ctgy.startsWith(PLAYING) || ctgy.startsWith(TERM) || ctgy.startsWith(PRESETS))) {
                 refreshPlayingContentInfo();
             }
         }
@@ -2639,13 +2655,39 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
     private void setPlayContent(final String uri, final @Nullable String output) {
         Objects.requireNonNull(uri, "uri cannot be null");
 
+        final String enrichedUri = getEnrichedUri(uri);
         final String translatedOutput = getTranslatedOutput(output);
         handleExecute(ScalarWebMethod.SETPLAYCONTENT, version -> {
             if (VersionUtilities.equals(version, ScalarWebMethod.V1_0, ScalarWebMethod.V1_1)) {
-                return new PlayContent_1_0(uri);
+                return new PlayContent_1_0(enrichedUri);
             }
-            return new PlayContent_1_2(uri, translatedOutput);
+            return new PlayContent_1_2(enrichedUri, translatedOutput);
         });
+    }
+
+    /**
+     * Enrich uri to handle situation where uri refers to tv source only , e.g. 'tv:dvbs' or 'tv:'
+     * This is the case when trying to set a TV source from the terminal source channel.
+     * In this situation, try to get full tv content uri with channel information
+     *
+     * @param uri
+     * @return
+     */
+    private String getEnrichedUri(final String uri) {
+        // get enriched uri from last played tv uri if exists (uri is of form 'tv:dvbs' or 'tv:')
+        final String lastPlayedTVUri = lastPlayedTVUriBySource.get(uri);
+        if (lastPlayedTVUri != null)
+            return lastPlayedTVUri;
+
+        // get enriched uri from preset entry if exists (uri is of form 'tv:dvbs' or 'tv:')
+        if (displayNumberUriMapBySource.containsKey(uri)) {
+            // return displayNumberUriMapBySource.get(uri).values().stream().findFirst().orElse(uri);
+            final String presetUri = displayNumberUriMapBySource.get(uri).get("0001");
+            if (presetUri != null) {
+                return presetUri;
+            }
+        }
+        return uri;
     }
 
     /**
