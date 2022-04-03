@@ -163,10 +163,11 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
      */
     @Nullable
     LoginUnsuccessfulResponse login() throws IOException {
+        logger.debug("Starting ircc login...");
         transport.setOption(TransportOptionAutoAuth.FALSE);
 
         final String accessCode = config.getAccessCode();
-
+        logger.debug("accessCode = '{}'", SonyUtil.defaultIfEmpty(accessCode, ""));
         final SonyAuthChecker authChecker = new SonyAuthChecker(transport, accessCode);
         final CheckResult checkResult = authChecker.checkResult(() -> {
             // To check our authorization, we execute a non-existent command.
@@ -176,8 +177,10 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
             // If we have 200 (good) or 500 (command not found), we return OK
             // If we have 403 (unauthorized) or 503 (service not available), we need pairing
             HttpResponse status = irccClient.executeSoap(transport, "nonexistentcommand");
+            logger.debug("Response status of calling non existing command: '{}'", status.getHttpCode());
             if (status.getHttpCode() == HttpStatus.OK_200) {
                 status = getStatus();
+                logger.debug("Response status of calling ircc status: '{}'", status.getHttpCode());
             }
 
             if (status.getHttpCode() == HttpStatus.OK_200
@@ -190,6 +193,7 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
             }
             return new AccessResult(status);
         });
+        logger.debug("checkResult: '{}'", checkResult.getCode());
 
         if (CheckResult.OK_HEADER.equals(checkResult)) {
             if (accessCode == null || accessCode.isEmpty()) {
@@ -200,9 +204,11 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
                 return new LoginUnsuccessfulResponse(ThingStatusDetail.CONFIGURATION_ERROR,
                         "Access code cannot be blank");
             } else {
+                logger.debug("setup header auth");
                 SonyAuth.setupHeader(accessCode, transport);
             }
         } else if (CheckResult.OK_COOKIE.equals(checkResult)) {
+            logger.debug("setup cookie auth");
             SonyAuth.setupCookie(transport);
         } else if (AccessResult.NEEDSPAIRING.equals(checkResult)) {
             if (accessCode == null || accessCode.isEmpty()) {
@@ -219,6 +225,7 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
             }
         } else {
             final AccessResult resp = sonyAuth.registerRenewal(transport);
+            logger.debug("register renewal");
             if (AccessResult.OK.equals(resp)) {
                 SonyAuth.setupCookie(transport);
             } else {
