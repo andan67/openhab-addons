@@ -20,6 +20,8 @@ import org.openhab.binding.sony.internal.net.NetUtil;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebConstants;
 import org.openhab.binding.sony.internal.transports.SonyTransport;
 import org.openhab.binding.sony.internal.transports.TransportOptionHeader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This class contains the logic to determine if an authorization call is needed (via {@link SonyAuth})
@@ -28,6 +30,10 @@ import org.openhab.binding.sony.internal.transports.TransportOptionHeader;
  */
 @NonNullByDefault
 public class SonyAuthChecker {
+
+    /** The logger */
+    private final Logger logger = LoggerFactory.getLogger(SonyAuthChecker.class);
+
     /** The transport to use for check authorization */
     private final SonyTransport transport;
 
@@ -69,8 +75,10 @@ public class SonyAuthChecker {
             final TransportOptionHeader authHeader = new TransportOptionHeader(
                     NetUtil.createAccessCodeHeader(localAccessCode));
             try {
+                logger.debug("localAccessCode: '{}'", localAccessCode);
                 transport.setOption(authHeader);
                 if (AccessResult.OK.equals(callback.checkResult())) {
+                    logger.debug("checkResult: '{}'", CheckResult.OK_HEADER.getCode());
                     return CheckResult.OK_HEADER;
                 }
             } finally {
@@ -81,16 +89,20 @@ public class SonyAuthChecker {
         // If we made it here - we are likely not header based but cookie based (or we are not even authenticated)
         // Attempt the check result without the auth header and return OK_COOKIE is good
         final AccessResult res = callback.checkResult();
+        logger.debug("res: '{}'", res.getCode());
         if (res == null) {
+            logger.debug("checkResult: '{}'", CheckResult.OTHER);
             return new CheckResult(CheckResult.OTHER, "Check result returned null");
         }
 
         if (AccessResult.OK.equals(res)) {
+            logger.debug("checkResult: '{}'", CheckResult.OK_COOKIE.getCode());
             return CheckResult.OK_COOKIE;
         }
 
         // We aren't either cookie or header based - return the results (likely needs pairing or the screen is off or
         // not on the main screen)
+        logger.debug("checkResult: '{}'", new CheckResult(res).getCode());
         return new CheckResult(res);
     }
 
