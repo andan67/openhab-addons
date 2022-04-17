@@ -174,15 +174,21 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
             // If it worked (200), we need to check further if we can getstatus (BDVs will respond 200
             // on non-existent command and not authorized)
             //
+            // Update: It seems that some receiver with header (CERS) authorization also return the 500 status code
+            // if unauthorized. So also this case needs to be checked with getStatus as this seems to be the easiest fix
+            // ToDo: Check whole implementation
+            //
             // If we have 200 (good) or 500 (command not found), we return OK
             // If we have 403 (unauthorized) or 503 (service not available), we need pairing
             HttpResponse status = irccClient.executeSoap(transport, "nonexistentcommand");
             logger.debug("Response status of calling non existing command: '{}'", status.getHttpCode());
-            if (status.getHttpCode() == HttpStatus.OK_200) {
+            if (status.getHttpCode() == HttpStatus.OK_200
+                    || status.getHttpCode() == HttpStatus.INTERNAL_SERVER_ERROR_500) {
                 status = getStatus();
                 logger.debug("Response status of calling ircc status: '{}'", status.getHttpCode());
             }
 
+            // here status value might com from from the getStatus call
             if (status.getHttpCode() == HttpStatus.OK_200
                     || status.getHttpCode() == HttpStatus.INTERNAL_SERVER_ERROR_500) {
                 return AccessResult.OK;
