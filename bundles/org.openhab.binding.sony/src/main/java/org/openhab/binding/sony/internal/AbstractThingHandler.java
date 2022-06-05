@@ -26,7 +26,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -71,7 +70,6 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     private static final double AUTO_RECONNECT_MULTIPLIER = 2.0;
     private static final int AUTO_RECONNECT_MAX_ATTEMPTS = 6;
     private final AtomicInteger autoRetryCount = new AtomicInteger(0);
-    private final AtomicBoolean isAutoRetryActive = new AtomicBoolean(false);
 
     /** The queue used to cache commands until online */
     private final Queue<CachedCommand> commandQueue = new ConcurrentLinkedQueue<>();
@@ -132,14 +130,18 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      * Helper method to start a connection attempt
      */
     private void doConnect() {
-        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
         if (isReachable()) {
+            // try to connect and set status only if reachable
+            updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
             connect();
         } else {
             logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", getDeviceIpAddress());
-            updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
-                    "Error connecting to device: not reachable");
-            return;
+            // set proper thing status if not already done
+            if (thing.getStatus() != ThingStatus.OFFLINE
+                    && thing.getStatusInfo().getStatusDetail() != ThingStatusDetail.COMMUNICATION_ERROR) {
+                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
+                        "Error connecting to device: not reachable");
+            }
         }
     }
 
@@ -159,14 +161,16 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         Objects.requireNonNull(command, "command cannot be null");
 
         final ThingStatus status = getThing().getStatus();
+        // if no retry connection is set, start reconnect on command reception
         final boolean autoReconnect = isAutoReconnect();
+        logger.info("Handle command: {} {} {} {}", status, autoReconnect, channelUID, command);
         if (status == ThingStatus.OFFLINE) {
             // handle power on commands if thing is offline by using WOL
             final PowerCommand powerCommand = handlePotentialPowerOnCommand(channelUID, command);
             if (powerCommand == PowerCommand.ON) {
                 logger.info("Received power on command when thing is offline - trying to turn on thing via WOL");
             }
-            if (isAutoReconnect() || powerCommand == PowerCommand.ON) {
+            if (autoReconnect || powerCommand == PowerCommand.ON) {
                 logger.debug("AutoReconnect on - scheduling reconnect and caching: {} {}", channelUID, command);
                 // do not cache power off commands as this is likely unwanted in case thing is offline but might happen
                 // when using power toggle command to switch on device with power item being in an inconsistent 'ON'
@@ -175,16 +179,17 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
                     commandQueue.add(new CachedCommand(channelUID, command));
                 }
                 // do no schedule auto retry if already active
-                if (!isAutoRetryActive.get()) {
+                if (autoRetryCount.get() == 0) {
                     logger.debug("Schedule auto reconnect");
-                    isAutoRetryActive.set(true);
-                    scheduleReconnect(AUTO_RECONNECT_INTERVAL);
+                    autoRetryCount.set(1);
+                    scheduleReconnect(0);
                 }
             }
-        } else if (status == ThingStatus.UNKNOWN && autoReconnect) {
+        } else if (status == ThingStatus.UNKNOWN && (autoReconnect || autoRetryCount.get() > 0)) {
             logger.debug("AutoReconnect on - waiting for reconnect and caching: {} {}", channelUID, command);
             commandQueue.add(new CachedCommand(channelUID, command));
         } else {
+            logger.debug("doHandleCommand");
             doHandleCommand(channelUID, command);
         }
     }
@@ -261,29 +266,28 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             schedulePolling();
             scheduleCheckStatus();
             doCachedCommands();
-            isAutoRetryActive.set(false);
             autoRetryCount.set(0);
         } else if (status == ThingStatus.UNKNOWN) {
             // probably in the process of reconnecting - ignore
             logger.trace("Ignoring thing status of UNKNOWN");
         } else {
+            // status == Thing.Status.OFFLINE
             SonyUtil.cancel(refreshState.getAndSet(null));
             SonyUtil.cancel(checkStatus.getAndSet(null));
 
             // don't bother reconnecting - won't fix a configuration error
             if (statusDetail != ThingStatusDetail.CONFIGURATION_ERROR) {
-                if (!isAutoRetryActive.get()) {
+                if (autoRetryCount.get() == 0) {
                     scheduleReconnect();
                 } else {
                     // Try until maximum number of auto retries are reached.
                     // This might happen when the auto retry delay is too short for the device services to become online
-                    if (autoRetryCount.getAndIncrement() < AUTO_RECONNECT_MAX_ATTEMPTS) {
+                    if (autoRetryCount.getAndIncrement() <= AUTO_RECONNECT_MAX_ATTEMPTS) {
                         logger.debug("Schedule auto reconnect counter={}", autoRetryCount.get());
                         scheduleReconnect((int) round(
                                 AUTO_RECONNECT_INTERVAL * pow(AUTO_RECONNECT_MULTIPLIER, autoRetryCount.get())));
                     } else {
                         // stop auto retry
-                        isAutoRetryActive.set(false);
                         autoRetryCount.set(0);
                     }
                 }
@@ -334,7 +338,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      *
      */
     private void scheduleReconnect(@Nullable Integer retryPolling) {
-        if (retryPolling != null && retryPolling > 0) {
+        if (retryPolling != null && retryPolling >= 0) {
             SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!SonyUtil.isInterrupted() && !isRemoved()) {
                     logger.debug("Do reconnect for {}", thing.getLabel());
@@ -448,7 +452,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      *
      * @return true if removed, false otherwise
      */
-    private boolean isRemoved() {
+    protected boolean isRemoved() {
         final ThingStatus status = getThing().getStatus();
         return status == ThingStatus.REMOVED || status == ThingStatus.REMOVING;
     }
