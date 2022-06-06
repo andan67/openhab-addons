@@ -300,7 +300,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             SonyUtil.checkInterrupt();
 
             // TODO Test
-            if (scalarClient.get() != null && protocolFactory.get() != null) {
+            if (false && scalarClient.get() != null && protocolFactory.get() != null) {
                 logger.debug("Trying to reuse available client and protocols");
                 final @Nullable ScalarWebClient client = scalarClient.get();
                 // check if scalar web service is available

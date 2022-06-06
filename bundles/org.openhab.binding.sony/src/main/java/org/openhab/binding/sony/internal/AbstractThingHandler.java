@@ -171,11 +171,12 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
                 logger.info("Received power on command when thing is offline - trying to turn on thing via WOL");
             }
             if (autoReconnect || powerCommand == PowerCommand.ON) {
-                logger.debug("AutoReconnect on - scheduling reconnect and caching: {} {}", channelUID, command);
+                logger.debug("AutoReconnect on - scheduling reconnect");
                 // do not cache power off commands as this is likely unwanted in case thing is offline but might happen
                 // when using power toggle command to switch on device with power item being in an inconsistent 'ON'
                 // state
-                if (powerCommand != PowerCommand.OFF) {
+                if (powerCommand == PowerCommand.NON) {
+                    logger.debug("Caching: {} {}", channelUID, command);
                     commandQueue.add(new CachedCommand(channelUID, command));
                 }
                 // do no schedule auto retry if already active
@@ -220,6 +221,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             if (now - cmd.timestamp > SonyBindingConstants.THING_CACHECOMMAND_TIMEOUTMS) {
                 logger.debug("Command expired waiting on a connect: {} {}", cmd.channelUID, cmd.command);
             } else {
+                logger.debug("Executing cached command: {} {}", cmd.channelUID, cmd.command);
                 doHandleCommand(cmd.channelUID, cmd.command);
             }
         }
