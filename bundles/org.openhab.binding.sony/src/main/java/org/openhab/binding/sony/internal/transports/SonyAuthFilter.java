@@ -113,68 +113,63 @@ public class SonyAuthFilter implements ClientRequestFilter, ClientResponseFilter
     public void filter(final @Nullable ClientRequestContext requestCtx) throws IOException {
         Objects.requireNonNull(requestCtx, "requestCtx cannot be null");
 
-        boolean authNeeded = true;
-        // logger.debug("Apply filter");
-
         // get expiry date from cookie and check for expiry
         // Note: ConcurrentHashMap is optimzed for get, so only apply putIfAbsent if necessary
-        NewCookie authCookie = hostAuthCookieMap.computeIfAbsent(host, k -> EMPTY_COOKIE);
+        final Date expiryDate = hostAuthCookieMap.computeIfAbsent(host, k -> EMPTY_COOKIE).getExpiry();
         //NewCookie authCookie = hostAuthCookieMap.getOrDefault(host, EMPTY_COOKIE);
-        final Date expiryDate = authCookie.getExpiry();
         if (expiryDate == null || new Date().after(expiryDate)) {
             logger.debug("SonyAuthFilter for baseUri: {} Cookie {} expired or null, isAutoAuth {}", baseUri,
                     expiryDate, autoAuth.isAutoAuth());
-        } else {
-            authNeeded = false;
-        }
-        // Note: There is potential Check-then-act race condition if multiple threads access the (static) cookie map
-        // However, this is deemed to be uncritical as in the worst case an additional authorization call is performed
 
-        if (authNeeded && tryAuth.get() && autoAuth.isAutoAuth()) {
-            logger.debug("SonyAuthFilter for baseUri: {} Trying to renew our authorization cookie for host: {}",
-                    baseUri, host);
-            final Client client = clientBuilder.build();
-            final String actControlUrl = NetUtil.getSonyUri(baseUri, ScalarWebService.ACCESSCONTROL);
-
-            final WebTarget target = client.target(actControlUrl);
-            final Gson gson = GsonUtilities.getDefaultGson();
-
-            final String json = gson.toJson(new ScalarWebRequest(ScalarWebMethod.ACTREGISTER, ScalarWebMethod.V1_0,
-                    new ActRegisterId(), new Object[] { new ActRegisterOptions() }));
-
-            try {
-                final Response rsp = target.request().post(Entity.json(json));
-
-                final Map<String, NewCookie> newCookies = rsp.getCookies();
-                if (newCookies != null) {
-                    final NewCookie newAuthCookie = newCookies.get(AUTHCOOKIENAME);
-                    if (newAuthCookie != null) {
-                        // create cookie with expiry date using 80% of maxAge given in seconds
-                        final Date newExpiryDate = new Date(new Date().getTime() + 800L * newAuthCookie.getMaxAge());
-                        final NewCookie newAuthCookieToStore = new NewCookie(newAuthCookie.toCookie(),
-                                newAuthCookie.getComment(), newAuthCookie.getMaxAge(), newExpiryDate,
-                                newAuthCookie.isSecure(), newAuthCookie.isHttpOnly());
-                        logger.debug("Authorization cookie was renewed");
-                        logger.debug("New auth cookie: {} with expiry date: {} for host: {}",
-                                newAuthCookieToStore.getValue(),
-                                newAuthCookieToStore.getExpiry(), host);
-                        hostAuthCookieMap.put(host, newAuthCookieToStore);
-                    } else {
-                        logger.debug("No authorization cookie was returned");
-                    }
+            if (tryAuth.get() && autoAuth.isAutoAuth()) {
+                // request new cookie value for host
+                logger.debug("SonyAuthFilter for baseUri: {} Trying to renew our authorization cookie for host: {}",
+                        baseUri, host);
+                NewCookie newAuthCookie = hostAuthCookieMap.compute(host, (k,v) -> computeAndSetNewAuthCookie());
+                if(!EMPTY_COOKIE.equals(newAuthCookie)) {
+                    logger.debug("New auth cookie: {} with expiry date: {} for host: {}",
+                            newAuthCookie.getValue(),
+                            newAuthCookie.getExpiry(), host);
                 } else {
                     logger.debug("No authorization cookie was returned");
                 }
-            } catch (final ProcessingException e) {
-                if (e.getCause() instanceof ConnectException) {
-                    tryAuth.set(false);
-                }
-                logger.debug("Could not renew authorization cookie: {}", e.getMessage());
             }
         }
-        List<Object> cookies = new ArrayList<>();
-        cookies.add(hostAuthCookieMap.get(host).toCookie());
-        requestCtx.getHeaders().put("Cookie", cookies);
+        requestCtx.getHeaders().putSingle("Cookie", hostAuthCookieMap.get(host).toCookie());
+    }
+
+    private NewCookie computeAndSetNewAuthCookie() {
+        final Client client = clientBuilder.build();
+        final String actControlUrl = NetUtil.getSonyUri(baseUri, ScalarWebService.ACCESSCONTROL);
+
+        final WebTarget target = client.target(actControlUrl);
+        final Gson gson = GsonUtilities.getDefaultGson();
+
+        final String json = gson.toJson(new ScalarWebRequest(ScalarWebMethod.ACTREGISTER, ScalarWebMethod.V1_0,
+                new ActRegisterId(), new Object[] { new ActRegisterOptions() }));
+
+        try {
+            final Response rsp = target.request().post(Entity.json(json));
+
+            final Map<String, NewCookie> newCookies = rsp.getCookies();
+            if (newCookies != null) {
+                final NewCookie newAuthCookie = newCookies.get(AUTHCOOKIENAME);
+                if (newAuthCookie != null) {
+                    // create cookie with expiry date using 80% of maxAge given in seconds
+                    final Date newExpiryDate = new Date(new Date().getTime() + 800L * newAuthCookie.getMaxAge());
+                    final NewCookie newAuthCookieToStore = new NewCookie(newAuthCookie.toCookie(),
+                            newAuthCookie.getComment(), newAuthCookie.getMaxAge(), newExpiryDate,
+                            newAuthCookie.isSecure(), newAuthCookie.isHttpOnly());
+                    return newAuthCookieToStore;
+                }
+            }
+        } catch (final ProcessingException e) {
+            if (e.getCause() instanceof ConnectException) {
+                tryAuth.set(false);
+            }
+            logger.debug("Could not renew authorization cookie: {}", e.getMessage());
+        }
+        return EMPTY_COOKIE;
     }
 
     @Override
