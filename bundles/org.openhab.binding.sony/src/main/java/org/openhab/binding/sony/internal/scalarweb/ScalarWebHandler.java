@@ -255,6 +255,11 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
         Objects.requireNonNull(channelUID, "channelUID cannot be null");
         Objects.requireNonNull(command, "command cannot be null");
 
+        if (getThing().getStatus() != ThingStatus.ONLINE) {
+            logger.debug("Not online. Ignoring command {} {}", channelUID, command);
+            return;
+        }
+
         final Channel channel = getThing().getChannel(channelUID.getId());
         if (channel == null) {
             logger.debug("Channel for {} could not be found", channelUID);
@@ -347,6 +352,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
 
                 SonyUtil.close(protocolFactory.getAndSet(factory));
                 updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE);
+                logger.debug("Thing status set to online");
 
                 // add already linked channels to the tracker to enable state refresh
                 getThing().getChannels().stream().filter(c -> isLinked(c.getUID()))
@@ -388,7 +394,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to Scalar Web device (may need to turn it on manually)");
         } catch (final Exception e) {
-            logger.debug("Unhandled exception connecting to Scalar Web device: {} ", e.getMessage(), e);
+            logger.error("Unhandled exception connecting to Scalar Web device: {} ", e.getMessage(), e);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Unhandled exception connecting to Scalar Web device (may need to turn it on manually): "
                             + e.getMessage());

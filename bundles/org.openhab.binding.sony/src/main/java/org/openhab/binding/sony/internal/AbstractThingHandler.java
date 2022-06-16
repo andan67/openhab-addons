@@ -26,7 +26,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -71,7 +70,6 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     private static final double AUTO_RECONNECT_MULTIPLIER = 2.0;
     private static final int AUTO_RECONNECT_MAX_ATTEMPTS = 6;
     private final AtomicInteger autoRetryCount = new AtomicInteger(0);
-    private final AtomicBoolean isAutoRetryActive = new AtomicBoolean(false);
 
     /** The queue used to cache commands until online */
     private final Queue<CachedCommand> commandQueue = new ConcurrentLinkedQueue<>();
@@ -124,7 +122,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
     @Override
     public void initialize() {
         updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
-        logger.debug("Thing initialization is called, trying to connect...");
+        logger.info("Thing initialization is called, trying to connect...");
         SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.submit(this::doConnect)));
     }
 
@@ -132,14 +130,14 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      * Helper method to start a connection attempt
      */
     private void doConnect() {
-        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
         if (isReachable()) {
+            // try to connect and set status only if reachable
+            updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
             connect();
         } else {
             logger.debug("Device with ip/host {} - not reachable. Giving-up connection attempt", getDeviceIpAddress());
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to device: not reachable");
-            return;
         }
     }
 
@@ -159,32 +157,36 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         Objects.requireNonNull(command, "command cannot be null");
 
         final ThingStatus status = getThing().getStatus();
+        // if no retry connection is set, start reconnect on command reception
         final boolean autoReconnect = isAutoReconnect();
+        logger.debug("Handle command: {} {} {} {}", status, autoReconnect, channelUID, command);
+        // this implies issuing WOL in case of power on command
+        final PowerCommand powerCommand = handlePotentialPowerOnCommand(channelUID, command);
         if (status == ThingStatus.OFFLINE) {
             // handle power on commands if thing is offline by using WOL
-            final PowerCommand powerCommand = handlePotentialPowerOnCommand(channelUID, command);
             if (powerCommand == PowerCommand.ON) {
                 logger.info("Received power on command when thing is offline - trying to turn on thing via WOL");
             }
-            if (isAutoReconnect() || powerCommand == PowerCommand.ON) {
-                logger.debug("AutoReconnect on - scheduling reconnect and caching: {} {}", channelUID, command);
-                // do not cache power off commands as this is likely unwanted in case thing is offline but might happen
-                // when using power toggle command to switch on device with power item being in an inconsistent 'ON'
-                // state
-                if (powerCommand != PowerCommand.OFF) {
-                    commandQueue.add(new CachedCommand(channelUID, command));
-                }
+            if (autoReconnect || powerCommand == PowerCommand.ON) {
+                logger.debug("AutoReconnect on - scheduling reconnect");
                 // do no schedule auto retry if already active
-                if (!isAutoRetryActive.get()) {
+                if (autoRetryCount.get() == 0) {
                     logger.debug("Schedule auto reconnect");
-                    isAutoRetryActive.set(true);
+                    autoRetryCount.set(1);
                     scheduleReconnect(AUTO_RECONNECT_INTERVAL);
                 }
             }
-        } else if (status == ThingStatus.UNKNOWN && autoReconnect) {
-            logger.debug("AutoReconnect on - waiting for reconnect and caching: {} {}", channelUID, command);
-            commandQueue.add(new CachedCommand(channelUID, command));
-        } else {
+        }
+        if (status != ThingStatus.ONLINE && (autoReconnect || autoRetryCount.get() > 0)) {
+            // do not cache power commands as this is likely unwanted in case thing is offline but might happen
+            // when using power toggle command to switch on device with power item being in an inconsistent 'ON'
+            // state
+            if (powerCommand == PowerCommand.NON) {
+                logger.debug("Caching: {} {}", channelUID, command);
+                commandQueue.add(new CachedCommand(channelUID, command));
+            }
+        } else if (status == ThingStatus.ONLINE) {
+            logger.debug("doHandleCommand");
             doHandleCommand(channelUID, command);
         }
     }
@@ -215,6 +217,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             if (now - cmd.timestamp > SonyBindingConstants.THING_CACHECOMMAND_TIMEOUTMS) {
                 logger.debug("Command expired waiting on a connect: {} {}", cmd.channelUID, cmd.command);
             } else {
+                logger.debug("Executing cached command: {} {}", cmd.channelUID, cmd.command);
                 doHandleCommand(cmd.channelUID, cmd.command);
             }
         }
@@ -261,29 +264,28 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             schedulePolling();
             scheduleCheckStatus();
             doCachedCommands();
-            isAutoRetryActive.set(false);
             autoRetryCount.set(0);
         } else if (status == ThingStatus.UNKNOWN) {
             // probably in the process of reconnecting - ignore
             logger.trace("Ignoring thing status of UNKNOWN");
         } else {
+            // status == Thing.Status.OFFLINE
             SonyUtil.cancel(refreshState.getAndSet(null));
             SonyUtil.cancel(checkStatus.getAndSet(null));
 
             // don't bother reconnecting - won't fix a configuration error
             if (statusDetail != ThingStatusDetail.CONFIGURATION_ERROR) {
-                if (!isAutoRetryActive.get()) {
+                if (autoRetryCount.get() == 0) {
                     scheduleReconnect();
                 } else {
                     // Try until maximum number of auto retries are reached.
                     // This might happen when the auto retry delay is too short for the device services to become online
-                    if (autoRetryCount.getAndIncrement() < AUTO_RECONNECT_MAX_ATTEMPTS) {
+                    if (autoRetryCount.getAndIncrement() <= AUTO_RECONNECT_MAX_ATTEMPTS) {
                         logger.debug("Schedule auto reconnect counter={}", autoRetryCount.get());
                         scheduleReconnect((int) round(
                                 AUTO_RECONNECT_INTERVAL * pow(AUTO_RECONNECT_MULTIPLIER, autoRetryCount.get())));
                     } else {
                         // stop auto retry
-                        isAutoRetryActive.set(false);
                         autoRetryCount.set(0);
                     }
                 }
@@ -300,11 +302,11 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         final Integer refresh = config.getRefresh();
 
         if (refresh != null && refresh > 0) {
-            logger.debug("Starting state polling every {} seconds", refresh);
+            logger.info("Starting state polling every {} seconds", refresh);
             SonyUtil.cancel(refreshState.getAndSet(
                     this.scheduler.scheduleWithFixedDelay(new RefreshState(), refresh, refresh, TimeUnit.SECONDS)));
         } else {
-            logger.debug("Refresh not a positive number - polling has been disabled");
+            logger.info("Refresh not a positive number - polling has been disabled");
         }
     }
 
@@ -334,7 +336,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      *
      */
     private void scheduleReconnect(@Nullable Integer retryPolling) {
-        if (retryPolling != null && retryPolling > 0) {
+        if (retryPolling != null && retryPolling >= 0) {
             SonyUtil.cancel(retryConnection.getAndSet(this.scheduler.schedule(() -> {
                 if (!SonyUtil.isInterrupted() && !isRemoved()) {
                     logger.debug("Do reconnect for {}", thing.getLabel());
@@ -342,7 +344,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
                 }
             }, retryPolling, TimeUnit.SECONDS)));
         } else {
-            logger.debug("Retry connection has been disabled via configuration setting");
+            logger.info("Retry connection has been disabled via configuration setting");
         }
     }
 
@@ -448,7 +450,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      *
      * @return true if removed, false otherwise
      */
-    private boolean isRemoved() {
+    protected boolean isRemoved() {
         final ThingStatus status = getThing().getStatus();
         return status == ThingStatus.REMOVED || status == ThingStatus.REMOVING;
     }
@@ -518,9 +520,9 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
             } catch (final Exception ex) {
                 final @Nullable String message = ex.getMessage();
                 if (message != null && message.contains("Connection refused")) {
-                    logger.debug("Connection refused - device is probably turned off");
+                    logger.info("Connection refused - device is probably turned off");
                 } else {
-                    logger.debug("Uncaught exception (refreshstate) : {}", ex.getMessage(), ex);
+                    logger.error("Uncaught exception (refreshstate) : {}", ex.getMessage(), ex);
                 }
             }
         }
