@@ -15,9 +15,7 @@ package org.openhab.binding.sony.internal.transports;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,19 +114,18 @@ public class SonyAuthFilter implements ClientRequestFilter, ClientResponseFilter
         // get expiry date from cookie and check for expiry
         // Note: ConcurrentHashMap is optimzed for get, so only apply putIfAbsent if necessary
         final Date expiryDate = hostAuthCookieMap.computeIfAbsent(host, k -> EMPTY_COOKIE).getExpiry();
-        //NewCookie authCookie = hostAuthCookieMap.getOrDefault(host, EMPTY_COOKIE);
+        // NewCookie authCookie = hostAuthCookieMap.getOrDefault(host, EMPTY_COOKIE);
         if (expiryDate == null || new Date().after(expiryDate)) {
-            logger.debug("SonyAuthFilter for baseUri: {} Cookie {} expired or null, isAutoAuth {}", baseUri,
-                    expiryDate, autoAuth.isAutoAuth());
+            logger.debug("SonyAuthFilter for baseUri: {} Cookie {} expired or null, isAutoAuth {}", baseUri, expiryDate,
+                    autoAuth.isAutoAuth());
 
             if (tryAuth.get() && autoAuth.isAutoAuth()) {
                 // request new cookie value for host
                 logger.debug("SonyAuthFilter for baseUri: {} Trying to renew our authorization cookie for host: {}",
                         baseUri, host);
-                NewCookie newAuthCookie = hostAuthCookieMap.compute(host, (k,v) -> computeAndSetNewAuthCookie());
-                if(!EMPTY_COOKIE.equals(newAuthCookie)) {
-                    logger.debug("New auth cookie: {} with expiry date: {} for host: {}",
-                            newAuthCookie.getValue(),
+                NewCookie newAuthCookie = hostAuthCookieMap.compute(host, (k, v) -> computeAndSetNewAuthCookie());
+                if (!EMPTY_COOKIE.equals(newAuthCookie)) {
+                    logger.debug("New auth cookie: {} with expiry date: {} for host: {}", newAuthCookie.getValue(),
                             newAuthCookie.getExpiry(), host);
                 } else {
                     logger.debug("No authorization cookie was returned");
