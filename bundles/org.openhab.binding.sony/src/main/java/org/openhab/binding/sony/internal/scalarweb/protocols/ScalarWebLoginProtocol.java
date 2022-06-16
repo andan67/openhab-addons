@@ -172,7 +172,8 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
         Arrays.stream(transports).forEach(t -> t.setOption(TransportOptionAutoAuth.FALSE));
         // Arrays.stream(transports).forEach(t -> t.setOption(TransportOptionAutoAuth.TRUE));
 
-        SonyUtil.sendWakeOnLan(logger, config.getDeviceIpAddress(), config.getDeviceMacAddress());
+        // TODO: Check if this is needed
+        // SonyUtil.sendWakeOnLan(logger, config.getDeviceIpAddress(), config.getDeviceMacAddress());
 
         final String accessCode = config.getAccessCode();
         final SonyAuthChecker authChecker = new SonyAuthChecker(systemService.getTransport(), accessCode);

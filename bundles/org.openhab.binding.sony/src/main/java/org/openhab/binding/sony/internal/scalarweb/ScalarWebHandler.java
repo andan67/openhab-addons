@@ -19,8 +19,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -257,6 +255,11 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
         Objects.requireNonNull(channelUID, "channelUID cannot be null");
         Objects.requireNonNull(command, "command cannot be null");
 
+        if (getThing().getStatus() != ThingStatus.ONLINE) {
+            logger.debug("Not online. Ignoring command {} {}", channelUID, command);
+            return;
+        }
+
         final Channel channel = getThing().getChannel(channelUID.getId());
         if (channel == null) {
             logger.debug("Channel for {} could not be found", channelUID);
@@ -300,7 +303,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             SonyUtil.checkInterrupt();
 
             // TODO Test
-            if (false && scalarClient.get() != null && protocolFactory.get() != null) {
+            if (scalarClient.get() != null && protocolFactory.get() != null) {
                 logger.debug("Trying to reuse available client and protocols");
                 final @Nullable ScalarWebClient client = scalarClient.get();
                 // check if scalar web service is available
@@ -349,7 +352,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
 
                 SonyUtil.close(protocolFactory.getAndSet(factory));
                 updateStatus(ThingStatus.ONLINE, ThingStatusDetail.NONE);
-                logger.info("Thing status set to online");
+                logger.debug("Thing status set to online");
 
                 // add already linked channels to the tracker to enable state refresh
                 getThing().getChannels().stream().filter(c -> isLinked(c.getUID()))
@@ -361,12 +364,6 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
                     sonyDefinitionProvider.removeListener(definitionListener);
                     sonyDefinitionProvider.addListener(modelName, getThing().getThingTypeUID(), definitionListener);
                 }
-
-                logger.info("Start checking online status");
-                ScheduledFuture<?> checkOnlineHandle = this.scheduler.scheduleWithFixedDelay(new CheckOnline(), 0, 2,
-                        TimeUnit.SECONDS);
-                Runnable checkOnlineCanceller = () -> checkOnlineHandle.cancel(false);
-                this.scheduler.schedule(checkOnlineCanceller, 3, TimeUnit.MINUTES);
 
                 this.scheduler.submit(() -> {
                     // Refresh the state right away
@@ -397,7 +394,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to Scalar Web device (may need to turn it on manually)");
         } catch (final Exception e) {
-            logger.debug("Unhandled exception connecting to Scalar Web device: {} ", e.getMessage(), e);
+            logger.error("Unhandled exception connecting to Scalar Web device: {} ", e.getMessage(), e);
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Unhandled exception connecting to Scalar Web device (may need to turn it on manually): "
                             + e.getMessage());
@@ -559,43 +556,6 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             if (ScalarWebConstants.THING_TYPE_SCALAR.equals(uid) || (modelName != null && !modelName.isEmpty()
                     && SonyUtil.isModelMatch(uid, SonyBindingConstants.SCALAR_THING_TYPE_PREFIX, modelName))) {
                 changeThingType(uid, getConfig());
-            }
-        }
-    }
-
-    /**
-     * This helper class is used to check if service is actually online
-     */
-    private class CheckOnline implements Runnable {
-
-        @Override
-        public void run() {
-            // throw exceptions to prevent future tasks under these circumstances
-            if (isRemoved()) {
-                throw new IllegalStateException("Thing has been removed - ending state polling");
-            }
-            if (SonyUtil.isInterrupted()) {
-                throw new IllegalStateException("State polling has been cancelled");
-            }
-
-            try {
-                final @Nullable ScalarWebClient client = scalarClient.get();
-                // check if scalar web service is available
-                if (client != null && client.getService(ScalarWebService.GUIDE) != null) {
-                    final @Nullable ScalarWebService guideService = client.getService(ScalarWebService.GUIDE);
-                    if (guideService != null) {
-                        final ScalarWebResult result = guideService.execute(ScalarWebMethod.GETVERSIONS);
-                        logger.info("CheckOnline: {}/{}/{}", result.getDeviceErrorCode(), result.getDeviceErrorDesc(),
-                                result.getResults().toString());
-                    }
-                }
-            } catch (final Exception ex) {
-                final @Nullable String message = ex.getMessage();
-                if (message != null && message.contains("Connection refused")) {
-                    logger.debug("Connection refused - device is probably turned off");
-                } else {
-                    logger.debug("Uncaught exception (CheckOnline) : {}", ex.getMessage(), ex);
-                }
             }
         }
     }
