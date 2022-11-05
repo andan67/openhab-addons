@@ -54,12 +54,6 @@ public class RESTProtocol {
     private final HttpClient httpClient;
     private final Gson gson = new Gson();
 
-    public enum PowerStatus {
-        ON,
-        OFF,
-        STANDBY
-    };
-
     public RESTProtocol(String host, HttpClient httpClient) {
         this(host, DEFAULT_PORT, httpClient);
     }
@@ -75,12 +69,13 @@ public class RESTProtocol {
             if (res.getStatus() == HttpStatus.OK_200) {
                 SystemInformation systemInformation = gson.fromJson(res.getContentAsString(), SystemInformation.class);
                 return systemInformation;
+            } else {
+                return new SystemInformation();
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             // logger.error("{}", e.getMessage(), e);
             return null;
         }
-        return null;
     }
 
     public List<SkyChannel> getChannels() {
