@@ -26,8 +26,16 @@ public class SystemInformation {
     public enum PowerStatus {
         ON,
         OFF,
-        STANDBY
+        STANDBY,
+        UNDEF
     };
+
+    public SystemInformation() {
+        this.ipAddress = null;
+        this.macAddress = null;
+        this.systemUptime = 0;
+        this.activeStandby = false;
+    }
 
     @SerializedName(value = "IPAddress")
     public @Nullable String ipAddress;
