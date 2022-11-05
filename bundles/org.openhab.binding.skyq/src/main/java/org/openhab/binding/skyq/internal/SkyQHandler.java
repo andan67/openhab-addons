@@ -20,7 +20,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -86,6 +85,7 @@ public class SkyQHandler extends BaseThingHandler {
     private Map<@Nullable String, SkyChannel> sidToSkyChannelMap = new LinkedHashMap<>();
 
     State powerState = UnDefType.UNDEF;
+    SystemInformation.PowerStatus powerStatus = SystemInformation.PowerStatus.UNDEF;
 
     public SkyQHandler(Thing thing, WebSocketClient webSocketClient, HttpClient httpClient,
             SkyQStateDescriptionOptionProvider stateDescriptionProvider) {
@@ -123,7 +123,7 @@ public class SkyQHandler extends BaseThingHandler {
 
         switch (id) {
             case CHANNEL_CONTROL_COMMAND:
-                controlProtocol.sendCommand(command.toString());
+                controlProtocol.sendCommand(Arrays.asList(command.toString().split(";")));
                 break;
             case CHANNEL_PRESET:
             case CHANNEL_FAVORITES:
@@ -134,18 +134,36 @@ public class SkyQHandler extends BaseThingHandler {
                         List<String> commandList = new ArrayList<>();
                         commandList.add("backup");
                         commandList.addAll(Arrays.asList(command.toString().split("")));
-                        controlProtocol.sendCommand(commandList);
+                        if (controlProtocol.sendCommand(commandList)) {
+                            SkyChannel skyChannel = sidToSkyChannelMap.get(command.toString());
+                            updateState(
+                                    new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
+                                    new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
+                        }
+                        ;
                     }
                 }
                 break;
             case CHANNEL_POWER:
-                if (restProtocol != null) {
+                if (controlProtocol != null) {
                     if (command instanceof OnOffType) {
-                        if ((command.equals(OnOffType.ON) && !powerState.equals(OnOffType.ON)
-                                || command.equals(OnOffType.OFF) && powerState.equals(OnOffType.ON))) {
-                            controlProtocol.sendCommand(Collections.singletonList("power"));
-                            powerState = (OnOffType) command;
+                        if (command.equals(OnOffType.ON) && !powerState.equals(OnOffType.ON)) {
+                            // power on via sky command. This prevents powering off if valus of powerState doesn't
+                            // represent real state
+                            controlProtocol.sendCommand("sky");
+                            controlProtocol.sendCommand("sleep");
+                            controlProtocol.sendCommand("sleep");
+                            controlProtocol.sendCommand("backup");
+                            powerState = OnOffType.ON;
+                            powerStatus = SystemInformation.PowerStatus.ON;
+                        } else if (command.equals(OnOffType.OFF) && powerState.equals(OnOffType.ON)) {
+                            controlProtocol.sendCommand("power");
+                            powerState = OnOffType.OFF;
+                            // immediately after power of the receiver should be in standby mode
+                            powerStatus = SystemInformation.PowerStatus.STANDBY;
                         }
+                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
+                                new StringType(powerStatus.toString()));
                     }
                 }
                 break;
@@ -170,8 +188,8 @@ public class SkyQHandler extends BaseThingHandler {
     }
 
     private void doConnect() {
-        updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
         if (isOnline() && upnpProtocol != null) {
+            updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
             // The control url for the upnp services may change over time, so get actual values on start-up
             upnpProtocol.findServices();
             updateStatus(ThingStatus.ONLINE);
@@ -331,10 +349,9 @@ public class SkyQHandler extends BaseThingHandler {
      * @return true if device is online, otherweise false
      */
     private boolean isOnline() {
-        if (restProtocol != null) {
-            return restProtocol.getSystemInformation() != null;
-        }
-        return false;
+        refreshPowerStatus(false);
+        return (powerStatus == SystemInformation.PowerStatus.ON
+                || powerStatus == SystemInformation.PowerStatus.STANDBY);
     }
 
     private void scheduleReconnect() {
@@ -411,9 +428,8 @@ public class SkyQHandler extends BaseThingHandler {
                             stateOptions.add(0,
                                     new StateOption(RESTProtocol.PRESET_REFRESH, RESTProtocol.PRESET_REFRESH));
                             stateDescriptionProvider.setStateOptions(channelUID, stateOptions);
-                        } else {
-                            updateState(channelUID, UnDefType.UNDEF);
                         }
+                        updateState(channelUID, UnDefType.UNDEF);
                         break;
                     default:
                         updateState(channelUID, UnDefType.UNDEF);
@@ -423,28 +439,41 @@ public class SkyQHandler extends BaseThingHandler {
         }
     }
 
-    private void refreshState(boolean initial) {
-        // get current system information
+    private void refreshPowerStatus(boolean performUpdate) {
         if (restProtocol != null) {
-            @Nullable
+            powerStatus = SystemInformation.PowerStatus.UNDEF;
+            powerState = UnDefType.UNDEF;
             SystemInformation systemInformation = restProtocol.getSystemInformation();
             if (systemInformation != null) {
                 if (systemInformation.activeStandby) {
                     powerState = OnOffType.OFF;
-                } else {
+                    powerStatus = SystemInformation.PowerStatus.STANDBY;
+                } else if (systemInformation.ipAddress != null) {
                     powerState = OnOffType.ON;
+                    powerStatus = SystemInformation.PowerStatus.ON;
                 }
             } else {
-                powerState = UnDefType.UNDEF;
+                powerState = OnOffType.OFF;
+                powerStatus = SystemInformation.PowerStatus.OFF;
             }
-            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
-                    new StringType(powerState.toString()));
-            updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), powerState);
-            if (systemInformation == null) {
-                // offline
-                updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Could not connect to "
-                        + (config != null ? config.hostname : "n/a") + ":" + ControlProtocol.DEFAULT_PORT);
+            if (performUpdate) {
+                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_POWER_STATUS),
+                        new StringType(powerStatus.toString()));
+                updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_POWER), powerState);
+                if (powerStatus == SystemInformation.PowerStatus.UNDEF
+                        || powerStatus == SystemInformation.PowerStatus.OFF) {
+                    // offline
+                    updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, "Could not connect to "
+                            + (config != null ? config.hostname : "n/a") + ":" + ControlProtocol.DEFAULT_PORT);
+                }
             }
+        }
+    }
+
+    private void refreshState(boolean initial) {
+        // get current system information
+        if (restProtocol != null) {
+            refreshPowerStatus(true);
             if (initial || sidToSkyChannelMap.isEmpty()) {
                 refreshSkyChannels();
             }

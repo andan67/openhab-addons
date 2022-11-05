@@ -46,6 +46,11 @@ public class ControlProtocol {
             entry("play", 64), entry("pause", 65), entry("stop", 66), entry("record", 67), entry("fastforward", 69),
             entry("rewind", 71), entry("boxoffice", 240), entry("sky", 241));
 
+    static final int PAUSE_DURATION = 200;
+
+    static final String SLEEP_COMMAND = "sleep";
+
+    static final int SLEEP_DURATION = 500;
     static final int PROTOCOL_TIMEOUT = 1000;
     public static final int DEFAULT_PORT = 49160;
 
@@ -61,28 +66,35 @@ public class ControlProtocol {
         this.port = port;
     }
 
-    public void sendCommand(String command) {
-        sendCommand(List.of(command));
+    public boolean sendCommand(String command) {
+        return sendCommand(List.of(command));
     }
 
-    public void sendCommand(List<String> commandList) {
+    public boolean sendCommand(List<String> commandList) {
         boolean doPause = false;
-        for (String command : commandList) {
-            try {
-                if (doPause) {
-                    Thread.sleep(250);
+        boolean isSuccessfull = true;
+        try {
+            for (String command : commandList) {
+                if (SLEEP_COMMAND.equals(command)) {
+                    Thread.sleep(SLEEP_DURATION);
+                } else {
+                    if (doPause) {
+                        Thread.sleep(PAUSE_DURATION);
+                    }
+                    if (COMMAND_MAP.containsKey(command)) {
+                        isSuccessfull &= transmitCommand(COMMAND_MAP.get(command));
+                    }
+                    doPause = true;
                 }
-                if (COMMAND_MAP.containsKey(command)) {
-                    transmitCommand(COMMAND_MAP.get(command));
-                }
-                doPause = true;
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
             }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            isSuccessfull = false;
         }
+        return isSuccessfull;
     }
 
-    void transmitCommand(int code) {
+    private boolean transmitCommand(int code) {
         byte[] commandBytes = { 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, (byte) (Math.floor(224 + (code / 16))),
                 (byte) (code % 16) };
         try {
@@ -116,8 +128,10 @@ public class ControlProtocol {
                     break;
                 }
             }
+            return true;
         } catch (IOException ex) {
             logger.error("Error sending command: {}", ex.getMessage());
         }
+        return false;
     }
 }

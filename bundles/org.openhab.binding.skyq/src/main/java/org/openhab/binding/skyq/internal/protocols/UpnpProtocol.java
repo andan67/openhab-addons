@@ -48,6 +48,8 @@ public class UpnpProtocol {
 
     static final String SOAP_CONTROL_BASE_URL = "http://{0}:49153{1}";
     static final String SOAP_DESCRIPTION_BASE_URL = "http://{0}:49153/description{1}.xml";
+
+    static final String SKY_CONTROL = "SkyControl";
     static final String SKY_PLAY_URN = "urn:nds-com:serviceId:SkyPlay";
     static final String SOAP_ACTION = "\"urn:schemas-nds-com:service:SkyPlay:2#{0}\"";
     static final String SOAP_PAYLOAD = "<s:Envelope xmlns:s=''http://schemas.xmlsoap.org/soap/envelope/'' s:encodingStyle=''http://schemas.xmlsoap.org/soap/encoding/''>\n"
@@ -74,7 +76,6 @@ public class UpnpProtocol {
         xStream.ignoreUnknownElements();
         xStream.processAnnotations(
                 new Class[] { ServiceDescription.class, SoapResponse.class, MediaInfo.class, TransportInfo.class });
-        this.findServices();
     }
 
     public void findServices() {
@@ -92,13 +93,16 @@ public class UpnpProtocol {
                 if (res.getStatus() == HttpStatus.OK_200) {
                     ServiceDescription serviceDescription = (ServiceDescription) xStream
                             .fromXML(res.getContentAsString());
+                    if (!serviceDescription.device.deviceType.contains(SKY_CONTROL)) {
+                        continue;
+                    }
                     for (ServiceDescription.Service service : serviceDescription.device.serviceList) {
                         if (SKY_PLAY_URN.equals(service.serviceId)) {
                             return service;
                         }
                     }
                 }
-            } catch (InterruptedException | TimeoutException | ExecutionException ex) {
+            } catch (NullPointerException | InterruptedException | TimeoutException | ExecutionException ex) {
                 break;
             }
         }
@@ -134,8 +138,7 @@ public class UpnpProtocol {
                     ContentResponse res = req.send();
                     if (res.getStatus() == HttpStatus.OK_200) {
                         return (SoapResponse) xStream.fromXML(res.getContentAsString());
-                    }
-                    if (res.getStatus() == HttpStatus.INTERNAL_SERVER_ERROR_500) {
+                    } else {
                         // Set flag to perform one retry if not already set
                         // This handles the situation where the the controlURL has changed over time
                         // and needs to be refreshed from the findPlayService call further below
