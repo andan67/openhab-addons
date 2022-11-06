@@ -165,7 +165,7 @@ public class SkyQHandler extends BaseThingHandler {
                 break;
         }
         // refresh states from handling event for channel id
-        refreshState(id);
+        // refreshState(id);
     }
 
     @Override
@@ -474,9 +474,7 @@ public class SkyQHandler extends BaseThingHandler {
     private void refreshState(boolean initial, String handledChannel) {
         // get current system information
         if (restProtocol != null) {
-            if (handledChannel.isEmpty()) {
-                refreshPowerStatus(true);
-            }
+            refreshPowerStatus(true);
             if (initial || sidToSkyChannelMap.isEmpty()) {
                 refreshSkyChannels();
             }
@@ -493,15 +491,10 @@ public class SkyQHandler extends BaseThingHandler {
                     SkyChannel skyChannel = sidToSkyChannelMap.get(currentSid);
                     updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_STATUS, CHANNEL_CURRENT_CHANNEL_TITLE),
                             new StringType(skyChannel != null ? skyChannel.title : "UNDEF"));
-                    if (handledChannel.equals(CHANNEL_FAVORITES)) {
-                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
-                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
-                    }
-                    if (handledChannel.equals(CHANNEL_PRESET)) {
-                        updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES),
-                                new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
-                    }
-
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_PRESET),
+                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
+                    updateState(new ChannelUID(thing.getUID(), CHANNEL_GROUP_CONTROL, CHANNEL_FAVORITES),
+                            new StringType(skyChannel != null ? skyChannel.dispNum : "UNDEF"));
                 }
             }
             @Nullable
