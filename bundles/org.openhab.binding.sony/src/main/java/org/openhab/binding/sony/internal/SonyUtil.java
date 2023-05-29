@@ -363,7 +363,7 @@ public class SonyUtil {
      * @return true if strings are equal or both null, other false
      */
     public static boolean equals(final @Nullable String str1, final @Nullable String str2) {
-        if (str1 == str2) {
+        if (str1.equals(str2)) {
             return true;
         }
         if (str1 == null || str2 == null) {
