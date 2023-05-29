@@ -18,13 +18,12 @@ import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -295,11 +294,11 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
                 // Note: encode value in case it's a URL type
                 lines.add(v.getName() + "=" + v.getType() + ":" + URLEncoder.encode(v.getCmd(), "UTF-8"));
             }
-            Collections.sort(lines, String.CASE_INSENSITIVE_ORDER);
+            lines.sort(String.CASE_INSENSITIVE_ORDER);
 
             if (!lines.isEmpty()) {
                 logger.debug("Writing remote commands to {}", file);
-                Files.write(file, lines, Charset.forName("UTF-8"));
+                Files.write(file, lines, StandardCharsets.UTF_8);
             }
         }
     }
