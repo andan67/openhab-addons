@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -189,7 +189,7 @@ public class SonyFolderSource extends AbstractSonySource {
                                 return;
                             }
 
-                            if (event.kind() == StandardWatchEventKinds.ENTRY_DELETE) {
+                            if (event.kind().equals(StandardWatchEventKinds.ENTRY_DELETE)) {
                                 logger.debug("File deletion occurred, reloading ALL definitions");
                                 readFiles(folderThingTypes);
                             } else {

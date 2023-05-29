@@ -28,7 +28,6 @@
     <!-- io -->
     <module>org.openhab.io.homekit</module>
     <module>org.openhab.io.hueemulation</module>
-    <module>org.openhab.io.imperihome</module>
     <module>org.openhab.io.metrics</module>
     <module>org.openhab.io.neeo</module>
     <module>org.openhab.io.openhabcloud</module>
@@ -36,7 +35,6 @@
     <module>org.openhab.transform.basicprofiles</module>
     <module>org.openhab.transform.bin2json</module>
     <module>org.openhab.transform.exec</module>
-    <module>org.openhab.transform.javascript</module>
     <module>org.openhab.transform.jinja</module>
     <module>org.openhab.transform.jsonpath</module>
     <module>org.openhab.transform.map</module>
@@ -107,7 +105,6 @@
     <module>org.openhab.binding.daikin</module>
     <module>org.openhab.binding.dali</module>
     <module>org.openhab.binding.danfossairunit</module>
-    <module>org.openhab.binding.darksky</module>
     <module>org.openhab.binding.dbquery</module>
     <module>org.openhab.binding.deconz</module>
     <module>org.openhab.binding.denonmarantz</module>
@@ -200,7 +197,6 @@
     <module>org.openhab.binding.icalendar</module>
     <module>org.openhab.binding.icloud</module>
     <module>org.openhab.binding.ihc</module>
-    <module>org.openhab.binding.innogysmarthome</module>
     <module>org.openhab.binding.insteon</module>
     <module>org.openhab.binding.ipcamera</module>
     <module>org.openhab.binding.ipobserver</module>
@@ -236,7 +232,6 @@
     <module>org.openhab.binding.livisismarthome</module>
     <module>org.openhab.binding.logreader</module>
     <module>org.openhab.binding.loxone</module>
-    <module>org.openhab.binding.luftdateninfo</module>
     <module>org.openhab.binding.lutron</module>
     <module>org.openhab.binding.luxom</module>
     <module>org.openhab.binding.luxtronikheatpump</module>

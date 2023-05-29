@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -15,7 +15,7 @@ package org.openhab.binding.sony.internal.simpleip;
 import java.io.File;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -226,7 +226,7 @@ class SimpleIpProtocol implements SocketSessionListener, AutoCloseable {
             }
 
             logger.debug("Writing remote commands to {}", file);
-            Files.write(file, getDefaultCommands(), Charset.forName("UTF-8"));
+            Files.write(file, getDefaultCommands(), StandardCharsets.UTF_8);
         }
     }
 
