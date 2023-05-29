@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -573,8 +573,8 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
                         if (value1 == null || value2 == null || bool1 == null || bool2 == null || bool1.equals(bool2)) {
                             settingType = GeneralSetting.ENUMTARGET;
                         } else {
-                            channel.addProperty(PROP_OFFVALUE, bool1 == Boolean.FALSE ? value1 : value2);
-                            channel.addProperty(PROP_ONVALUE, bool1 == Boolean.TRUE ? value1 : value2);
+                            channel.addProperty(PROP_OFFVALUE, bool1.equals(Boolean.FALSE) ? value1 : value2);
+                            channel.addProperty(PROP_ONVALUE, bool1.equals(Boolean.TRUE) ? value1 : value2);
                         }
                     }
                 }

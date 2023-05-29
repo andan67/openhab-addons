@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -1971,7 +1971,7 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
         try {
             for (final CurrentExternalTerminalsStatus_1_0 term : execute(
                     ScalarWebMethod.GETCURRENTEXTERNALTERMINALSSTATUS)
-                            .asArray(CurrentExternalTerminalsStatus_1_0.class)) {
+                    .asArray(CurrentExternalTerminalsStatus_1_0.class)) {
                 final String termUri = term.getUri();
                 if (termUri != null && termUri.equalsIgnoreCase(channel.getPathPart(0))) {
                     notifyCurrentTerminalStatus(channel, term);

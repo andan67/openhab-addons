@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -338,7 +338,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             final AccessResult result = loginHandler.login();
             SonyUtil.checkInterrupt();
 
-            if (result == AccessResult.OK) {
+            if (result.equals(AccessResult.OK)) {
                 final ScalarWebProtocolFactory<ThingCallback<String>> factory = new ScalarWebProtocolFactory<>(context,
                         client, callback);
 
@@ -380,7 +380,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
                 // Note: there are other access code type errors that probably should be trapped here
                 // as well - but those are the major two (probably represent 99% of the cases)
                 // and we handle them separately
-                if (result == AccessResult.PENDING || result == AccessResult.NOTACCEPTED) {
+                if (result.equals(AccessResult.PENDING) || result.equals(AccessResult.NOTACCEPTED)) {
                     updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.CONFIGURATION_ERROR, result.getMsg());
                 } else {
                     updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR, result.getMsg());

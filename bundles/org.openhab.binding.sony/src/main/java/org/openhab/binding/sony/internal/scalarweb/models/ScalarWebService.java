@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -157,7 +157,7 @@ public class ScalarWebService implements AutoCloseable {
             try {
                 final MethodTypes mtdResults = execute(
                         new ScalarWebRequest(ScalarWebMethod.GETMETHODTYPES, version, apiVersion))
-                                .as(MethodTypes.class);
+                        .as(MethodTypes.class);
                 methods.addAll(mtdResults.getMethods());
             } catch (final IOException e) {
                 logger.debug("Could not retrieve {} vers {}: {}", ScalarWebMethod.GETMETHODTYPES, apiVersion,

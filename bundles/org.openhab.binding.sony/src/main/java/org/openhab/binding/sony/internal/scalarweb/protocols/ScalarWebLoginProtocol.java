@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -17,7 +17,7 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -186,7 +186,7 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
             if (systemService.hasMethod(ScalarWebMethod.GETPOWERSTATUS)) {
                 final ScalarWebResult result = systemService.execute(ScalarWebMethod.GETPOWERSTATUS);
                 ar = getAccessResult(result);
-                if (ar == AccessResult.NEEDSPAIRING || ar == AccessResult.DISPLAYOFF) {
+                if (ar.equals(AccessResult.NEEDSPAIRING) || ar.equals(AccessResult.DISPLAYOFF)) {
                     return ar;
                 }
             }
@@ -195,7 +195,7 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
             if (systemService.hasMethod(ScalarWebMethod.GETSYSTEMINFORMATION)) {
                 final ScalarWebResult result = systemService.execute(ScalarWebMethod.GETSYSTEMINFORMATION);
                 ar = getAccessResult(result);
-                if (ar == AccessResult.NEEDSPAIRING || ar == AccessResult.DISPLAYOFF) {
+                if (ar.equals(AccessResult.NEEDSPAIRING) || ar.equals(AccessResult.DISPLAYOFF)) {
                     return ar;
                 }
             }
@@ -206,7 +206,7 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
                 // getDeviceMode takes an unknown "value" argument - if we get back
                 // illegal arugment - then it executed fine and we are OK
                 ar = getAccessResult(result);
-                if (ar == AccessResult.NEEDSPAIRING || ar == AccessResult.DISPLAYOFF) {
+                if (ar.equals(AccessResult.NEEDSPAIRING) || ar.equals(AccessResult.DISPLAYOFF)) {
                     return ar;
                 }
                 if (result.getDeviceErrorCode() == ScalarWebError.ILLEGALARGUMENT) {
@@ -414,7 +414,7 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
 
                 if (!lines.isEmpty()) {
                     logger.debug("Writing remote commands to {}", file);
-                    Files.write(file, lines, Charset.forName("UTF-8"));
+                    Files.write(file, lines, StandardCharsets.UTF_8);
                 }
             } catch (final IOException e) {
                 logger.debug("Remote commands are undefined: {}", e.getMessage());

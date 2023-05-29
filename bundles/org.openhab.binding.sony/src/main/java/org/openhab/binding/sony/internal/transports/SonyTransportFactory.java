@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2021 Contributors to the openHAB project
+ * Copyright (c) 2010-2023 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -177,7 +177,7 @@ public class SonyTransportFactory {
                     String.format("ws://%s:%d/%s", baseUrl.getHost(), baseUrl.getPort() > 0 ? baseUrl.getPort() : 10000,
                             baseFile + (baseFile.endsWith("/") ? "" : "/")
                                     + (serviceName.startsWith("/") ? serviceName.substring(1) : serviceName)))
-                                            .normalize();
+                    .normalize();
             return new SonyWebSocketTransport(localWebSocketClient, uri, gson, scheduler);
         } catch (URISyntaxException | InterruptedException | ExecutionException | TimeoutException | IOException e) {
             logger.debug("Exception occurred creating transport: {}", e.getMessage());
