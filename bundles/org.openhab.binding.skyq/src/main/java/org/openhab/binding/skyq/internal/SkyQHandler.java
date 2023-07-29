@@ -198,7 +198,7 @@ public class SkyQHandler extends BaseThingHandler {
     }
 
     private void refreshSkyChannels() {
-        logger.info("Refreshing channels/services from SkyQ");
+        logger.debug("Refreshing channels/services from SkyQ");
         if (restProtocol == null) {
             return;
         }
@@ -475,7 +475,7 @@ public class SkyQHandler extends BaseThingHandler {
         // get current system information
         if (restProtocol != null) {
             refreshPowerStatus(true);
-            if (initial || sidToSkyChannelMap.isEmpty()) {
+            if (sidToSkyChannelMap.isEmpty()) {
                 refreshSkyChannels();
             }
         }
