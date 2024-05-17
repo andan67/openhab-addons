@@ -29,11 +29,10 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.ws.rs.client.ClientBuilder;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.client.HttpClient;
 import org.openhab.binding.sony.internal.AccessResult;
 import org.openhab.binding.sony.internal.CheckResult;
 import org.openhab.binding.sony.internal.LoginUnsuccessfulResponse;
@@ -126,7 +125,7 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
      * @throws IOException if an io exception occurs to the IRCC device
      */
     IrccProtocol(final IrccConfig config, final @Nullable TransformationService transformService, final T callback,
-            final ClientBuilder clientBuilder) throws IOException, URISyntaxException {
+            final HttpClient httpClient) throws IOException, URISyntaxException {
         Objects.requireNonNull(config, "config cannot be null");
         Objects.requireNonNull(callback, "callback cannot be null");
 
@@ -135,9 +134,9 @@ class IrccProtocol<T extends ThingCallback<String>> implements AutoCloseable {
 
         this.transformService = transformService;
 
-        this.irccClient = IrccClientFactory.get(config.getDeviceUrl(), clientBuilder);
+        this.irccClient = IrccClientFactory.get(config.getDeviceUrl(), httpClient);
         this.transport = SonyTransportFactory.createHttpTransport(irccClient.getBaseUrl().toExternalForm(),
-                clientBuilder);
+                httpClient);
         this.sonyAuth = new SonyAuth(() -> irccClient);
     }
 

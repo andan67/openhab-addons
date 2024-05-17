@@ -20,16 +20,16 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation.Builder;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
+import org.eclipse.jetty.client.HttpClient;
+import org.eclipse.jetty.client.api.ContentResponse;
+import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.http.HttpHeader;
+import org.eclipse.jetty.http.HttpMethod;
 import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.sony.internal.SonyUtil;
 import org.slf4j.Logger;
@@ -49,7 +49,7 @@ public class HttpRequest implements AutoCloseable {
     private final Logger logger = LoggerFactory.getLogger(HttpRequest.class);
 
     /** The client used in communication */
-    private final Client client;
+    private final HttpClient httpClient;
 
     /** The headers to include in each request */
     private final Map<String, String> headers = new HashMap<>();
@@ -57,20 +57,8 @@ public class HttpRequest implements AutoCloseable {
     /**
      * Instantiates a new http request
      */
-    public HttpRequest(ClientBuilder clientBuilder) {
-        // NOTE: assumes jersey client (no JAX compliant way of doing this)
-        // NOTE2: jax 2.1 has a way but we don't use that
-        /*
-         * final ClientConfig configuration = new ClientConfig();
-         * configuration.property(ClientProperties.CONNECT_TIMEOUT, 15000);
-         * configuration.property(ClientProperties.READ_TIMEOUT, 15000);
-         */
-
-        // client = ClientBuilder.newClient().property(CONNECT_TIMEOUT, 15000).property(READ_TIMEOUT, 15000);
-        client = clientBuilder.connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS).build();
-        if (logger.isDebugEnabled()) {
-            // client.register(new LoggingFilter(new Slf4LoggingAdapter(logger), true));
-        }
+    public HttpRequest(HttpClient httpClient) {
+        this.httpClient = httpClient;
     }
 
     /**
@@ -80,7 +68,7 @@ public class HttpRequest implements AutoCloseable {
      */
     public void register(final Object obj) {
         Objects.requireNonNull(obj, "obj cannot be null");
-        client.register(obj);
+        httpClient.ad register(obj);
     }
 
     /**

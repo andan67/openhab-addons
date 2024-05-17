@@ -21,11 +21,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.client.ClientBuilder;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.eclipse.jetty.client.HttpClient;
 import org.openhab.binding.sony.internal.SonyUtil;
 import org.openhab.binding.sony.internal.scalarweb.gson.GsonUtilities;
 import org.openhab.binding.sony.internal.scalarweb.models.api.ServiceProtocol;
@@ -72,7 +71,7 @@ public class SonyTransportFactory {
     private final @Nullable ScheduledExecutorService scheduler;
 
     /** The clientBuilder used in HttpRequest */
-    private final ClientBuilder clientBuilder;
+    private final HttpClient httpClient;
 
     /**
      * Constructs the transport factory
@@ -81,10 +80,10 @@ public class SonyTransportFactory {
      * @param gson a non-null gson to use
      * @param webSocketClient a potentially null websocket client
      * @param scheduler a potentially null scheduler
-     * @param clientBuilder a non-null client builder
+     * @param httpClient a non-null http client
      */
     public SonyTransportFactory(final URL baseUrl, final Gson gson, final @Nullable WebSocketClient webSocketClient,
-            final @Nullable ScheduledExecutorService scheduler, final ClientBuilder clientBuilder) {
+            final @Nullable ScheduledExecutorService scheduler, final HttpClient httpClient) {
         Objects.requireNonNull(baseUrl, "baseUrl cannot be null");
         Objects.requireNonNull(gson, "gson cannot be null");
 
@@ -92,7 +91,7 @@ public class SonyTransportFactory {
         this.gson = gson;
         this.webSocketClient = webSocketClient;
         this.scheduler = scheduler;
-        this.clientBuilder = clientBuilder;
+        this.httpClient = httpClient;
     }
 
     /**
@@ -199,7 +198,7 @@ public class SonyTransportFactory {
                 + (serviceName.startsWith("/") ? serviceName.substring(1) : serviceName);
 
         try {
-            return new SonyHttpTransport(baseUrlString, gson, clientBuilder);
+            return new SonyHttpTransport(baseUrlString, gson, httpClient);
         } catch (final URISyntaxException e) {
             logger.debug("Exception occurred creating transport: {}", e.getMessage());
             return null;
@@ -215,10 +214,10 @@ public class SonyTransportFactory {
      * @throws URISyntaxException if the baseUrl is malformed
      */
     public static SonyHttpTransport createHttpTransport(final String baseUrl, final Gson gson,
-            final ClientBuilder clientBuilder) throws URISyntaxException {
+            final HttpClient httpClient) throws URISyntaxException {
         SonyUtil.validateNotEmpty(baseUrl, "baseUrl cannot be empty");
         Objects.requireNonNull(gson, "gson cannot be null");
-        return new SonyHttpTransport(baseUrl, gson, clientBuilder);
+        return new SonyHttpTransport(baseUrl, gson, httpClient);
     }
 
     /**
@@ -228,10 +227,10 @@ public class SonyTransportFactory {
      * @return a non-null sony http transport
      * @throws URISyntaxException if the baseUrl is malformed
      */
-    public static SonyHttpTransport createHttpTransport(final String baseUrl, final ClientBuilder clientBuilder)
+    public static SonyHttpTransport createHttpTransport(final String baseUrl, final HttpClient httpClient)
             throws URISyntaxException {
         SonyUtil.validateNotEmpty(baseUrl, "baseUrl cannot be empty");
-        return createHttpTransport(baseUrl, GsonUtilities.getApiGson(), clientBuilder);
+        return createHttpTransport(baseUrl, GsonUtilities.getApiGson(), httpClient);
     }
 
     /**
@@ -241,10 +240,10 @@ public class SonyTransportFactory {
      * @return a non-null sony http transport
      * @throws URISyntaxException if the baseUrl is malformed
      */
-    public static SonyHttpTransport createHttpTransport(final URL baseUrl, final ClientBuilder clientBuilder)
+    public static SonyHttpTransport createHttpTransport(final URL baseUrl, final HttpClient httpClient)
             throws URISyntaxException {
         Objects.requireNonNull(baseUrl, "baseUrl cannot be null");
-        return createHttpTransport(baseUrl.toExternalForm(), clientBuilder);
+        return createHttpTransport(baseUrl.toExternalForm(), httpClient);
     }
 
     /**
@@ -256,10 +255,10 @@ public class SonyTransportFactory {
      * @throws URISyntaxException if the baseUrl is malformed
      */
     public static SonyHttpTransport createHttpTransport(final URL baseUrl, final Gson gson,
-            final ClientBuilder clientBuilder) throws URISyntaxException {
+            final HttpClient httpClient) throws URISyntaxException {
         Objects.requireNonNull(baseUrl, "baseUrl cannot be null");
         Objects.requireNonNull(gson, "gson cannot be null");
-        return createHttpTransport(baseUrl.toExternalForm(), gson, clientBuilder);
+        return createHttpTransport(baseUrl.toExternalForm(), gson, httpClient);
     }
 
     /**
@@ -271,12 +270,12 @@ public class SonyTransportFactory {
      * @throws URISyntaxException if the baseUrl is malformed
      */
     public static SonyHttpTransport createHttpTransport(final URL baseUrl, final String serviceName,
-            final ClientBuilder clientBuilder) throws URISyntaxException {
+            final HttpClient httpClient) throws URISyntaxException {
         Objects.requireNonNull(baseUrl, "baseUrl cannot be null");
         SonyUtil.validateNotEmpty(serviceName, "serviceName cannot be empty");
         final String base = baseUrl.toString();
         final String baseUrlString = base + (base.endsWith("/") ? "" : "/")
                 + (serviceName.startsWith("/") ? serviceName.substring(1) : serviceName);
-        return new SonyHttpTransport(baseUrlString, GsonUtilities.getApiGson(), clientBuilder);
+        return new SonyHttpTransport(baseUrlString, GsonUtilities.getApiGson(), httpClient);
     }
 }

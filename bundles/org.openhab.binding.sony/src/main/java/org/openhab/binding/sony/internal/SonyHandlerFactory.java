@@ -15,10 +15,9 @@ package org.openhab.binding.sony.internal;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.ws.rs.client.ClientBuilder;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
+import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
 import org.openhab.binding.sony.internal.dial.DialConstants;
 import org.openhab.binding.sony.internal.dial.DialHandler;
@@ -29,6 +28,7 @@ import org.openhab.binding.sony.internal.providers.SonyDynamicStateProvider;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebHandler;
 import org.openhab.binding.sony.internal.simpleip.SimpleIpConstants;
 import org.openhab.binding.sony.internal.simpleip.SimpleIpHandler;
+import org.openhab.core.io.net.http.HttpClientFactory;
 import org.openhab.core.io.net.http.WebSocketFactory;
 import org.openhab.core.thing.Thing;
 import org.openhab.core.thing.ThingTypeUID;
@@ -70,9 +70,9 @@ public class SonyHandlerFactory extends BaseThingHandlerFactory {
     private final SonyDynamicStateProvider sonyDynamicStateProvider;
 
     /**
-     * The clientBuilder used in HttpRequest
+     * The httpClient used in HttpRequest
      */
-    private final ClientBuilder clientBuilder;
+    private final HttpClient httpClient;
 
     /**
      * The OSGI properties for the things
@@ -83,24 +83,26 @@ public class SonyHandlerFactory extends BaseThingHandlerFactory {
      * Constructs the handler factory
      *
      * @param webSocketFactory a non-null websocket factory
+     * @param httpClientFactory a non-null http client factory
      * @param sonyDefinitionProvider a non-null sony definition provider
      * @param sonyDynamicStateProvider a non-null sony dynamic state provider
-     * @param clientBuilder a non-null client builder
      * @param osgiProperties a non-null, possibly empty list of OSGI properties
      */
     @Activate
     public SonyHandlerFactory(final @Reference WebSocketFactory webSocketFactory,
-            final @Reference SonyDefinitionProvider sonyDefinitionProvider,
-            final @Reference SonyDynamicStateProvider sonyDynamicStateProvider,
-            final @Reference ClientBuilder clientBuilder, final Map<String, String> osgiProperties) {
+                              final @Reference HttpClientFactory httpClientFactory,
+                              final @Reference SonyDefinitionProvider sonyDefinitionProvider,
+                              final @Reference SonyDynamicStateProvider sonyDynamicStateProvider,
+                              final Map<String, String> osgiProperties) {
         Objects.requireNonNull(webSocketFactory, "webSocketFactory cannot be null");
+        Objects.requireNonNull(httpClientFactory, "httpClientFactory cannot be null");
         Objects.requireNonNull(sonyDefinitionProvider, "sonyDefinitionProvider cannot be null");
         Objects.requireNonNull(sonyDynamicStateProvider, "sonyDynamicStateProvider cannot be null");
         Objects.requireNonNull(osgiProperties, "osgiProperties cannot be null");
         this.webSocketClient = webSocketFactory.getCommonWebSocketClient();
+        this.httpClient = httpClientFactory.getCommonHttpClient();
         this.sonyDefinitionProvider = sonyDefinitionProvider;
         this.sonyDynamicStateProvider = sonyDynamicStateProvider;
-        this.clientBuilder = clientBuilder;
         this.osgiProperties = osgiProperties;
     }
 
@@ -122,14 +124,14 @@ public class SonyHandlerFactory extends BaseThingHandlerFactory {
         } else if (thingTypeUID.equals(IrccConstants.THING_TYPE_IRCC)) {
             final TransformationService transformationService = TransformationHelper
                     .getTransformationService(getBundleContext(), "MAP");
-            return new IrccHandler(thing, transformationService, clientBuilder);
+            return new IrccHandler(thing, transformationService, httpClient);
         } else if (thingTypeUID.equals(DialConstants.THING_TYPE_DIAL)) {
-            return new DialHandler(thing, clientBuilder);
+            return new DialHandler(thing, httpClient);
         } else if (thingTypeUID.getId().startsWith(SonyBindingConstants.SCALAR_THING_TYPE_PREFIX)) {
             final TransformationService transformationService = TransformationHelper
                     .getTransformationService(getBundleContext(), "MAP");
 
-            ThingHandler th = new ScalarWebHandler(thing, transformationService, webSocketClient, clientBuilder,
+            ThingHandler th = new ScalarWebHandler(thing, transformationService, webSocketClient, httpClient,
                     sonyDefinitionProvider, sonyDynamicStateProvider, osgiProperties);
             return th;
             // return new ScalarWebHandler(thing, transformationService, webSocketClient, sonyDefinitionProvider,

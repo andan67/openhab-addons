@@ -21,10 +21,9 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import javax.ws.rs.client.ClientBuilder;
-
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.client.HttpClient;
 import org.openhab.binding.sony.internal.SonyBindingConstants;
 import org.openhab.binding.sony.internal.SonyUtil;
 import org.openhab.binding.sony.internal.net.Header;
@@ -59,15 +58,15 @@ public class SonyHttpTransport extends AbstractSonyTransport {
      * 
      * @param baseUrl a non-null base URL
      * @param gson a non-null GSON to use for serialzation
-     * @param clientBuilder a non-null client builder
+     * @param httpClient a non-null http client
      * @throws URISyntaxException if the base URL has a bad syntax
      */
-    public SonyHttpTransport(final String baseUrl, final Gson gson, final ClientBuilder clientBuilder)
+    public SonyHttpTransport(final String baseUrl, final Gson gson, final HttpClient httpClient)
             throws URISyntaxException {
         super(new URI(baseUrl));
         Objects.requireNonNull(gson, "gson cannot be null");
 
-        requestor = new HttpRequest(clientBuilder);
+        requestor = new HttpRequest(httpClient);
 
         requestor.addHeader("User-Agent", SonyBindingConstants.NET_USERAGENT);
         requestor.addHeader("X-CERS-DEVICE-INFO", SonyBindingConstants.NET_USERAGENT);
@@ -79,7 +78,7 @@ public class SonyHttpTransport extends AbstractSonyTransport {
             final boolean authNeeded = getOptions(TransportOptionAutoAuth.class).stream()
                     .anyMatch(e -> e == TransportOptionAutoAuth.TRUE);
             return authNeeded;
-        }, clientBuilder));
+        }, httpClient));
         this.setOption(TransportOptionAutoAuth.FALSE);
 
         this.gson = gson;

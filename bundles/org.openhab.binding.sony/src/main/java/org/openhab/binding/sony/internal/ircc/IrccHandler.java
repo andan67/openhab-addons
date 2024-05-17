@@ -17,8 +17,7 @@ import java.net.URISyntaxException;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import javax.ws.rs.ProcessingException;
-import javax.ws.rs.client.ClientBuilder;
+import org.eclipse.jetty.client.HttpClient;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
@@ -57,7 +56,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
     private final @Nullable TransformationService transformationService;
 
     /** The clientBuilder used in HttpRequest */
-    private final ClientBuilder clientBuilder;
+    private final HttpClient httpClient;
 
     /**
      * Constructs the handler from the {@link Thing} and {@link TransformationService}
@@ -66,12 +65,12 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
      * @param transformationService a possibly null {@link TransformationService} to use to transform MAP file
      */
     public IrccHandler(final Thing thing, final @Nullable TransformationService transformationService,
-            final ClientBuilder clientBuilder) {
+            final HttpClient httpClient) {
         super(thing, IrccConfig.class);
 
         Objects.requireNonNull(thing, "thing cannot be null");
         this.transformationService = transformationService;
-        this.clientBuilder = clientBuilder;
+        this.httpClient = httpClient;
     }
 
     @Override
@@ -272,7 +271,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
                         public void setProperty(final String propertyName, final @Nullable String propertyValue) {
                             getThing().setProperty(propertyName, propertyValue);
                         }
-                    }, clientBuilder);
+                    }, httpClient);
 
             protocolHandler.set(localProtocolHandler);
 
@@ -285,7 +284,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
             } else {
                 updateStatus(ThingStatus.OFFLINE, response.getThingStatusDetail(), response.getMessage());
             }
-        } catch (IOException | ProcessingException | URISyntaxException e) {
+        } catch (IOException | URISyntaxException e) {
             updateStatus(ThingStatus.OFFLINE, ThingStatusDetail.COMMUNICATION_ERROR,
                     "Error connecting to IRCC device (may need to turn it on manually): " + e.getMessage());
         } catch (final InterruptedException e) {
