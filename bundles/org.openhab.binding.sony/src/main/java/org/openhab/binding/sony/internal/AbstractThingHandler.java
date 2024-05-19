@@ -20,6 +20,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.URL;
 import java.util.Objects;
 import java.util.Queue;
@@ -130,7 +131,7 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
      * Helper method to start a connection attempt
      */
     private void doConnect() {
-        if (isReachable()) {
+        if (isReachableBySocket()) {
             // try to connect and set status only if reachable
             updateStatus(ThingStatus.UNKNOWN, ThingStatusDetail.NONE, "Initializing ...");
             connect();
@@ -397,6 +398,35 @@ public abstract class AbstractThingHandler<C extends AbstractConfig> extends Bas
         try {
             return InetAddress.getByName(iPAddress).isReachable(500);
         } catch (IOException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * Checks if device is reachable
+     *
+     * @return true if device is reachable, otherweise false
+     */
+    private boolean isReachableBySocket() {
+        // check if device is reachable before trying to login
+        int timeout = 500;
+        try {
+            URL url = getCheckStatusUrl();
+            final String host = url.getHost();
+            final int urlPort = url.getPort();
+            final int port = urlPort == -1 ? url.getDefaultPort() : urlPort;
+            logger.debug("Trying to open socket connection to {}:{}...", host, port);
+            SocketAddress socketAddress = new InetSocketAddress(host, port);
+            try (Socket socket = new Socket()) {
+                socket.connect(socketAddress, timeout);
+                logger.debug("Connected");
+                return true;
+            } catch (IOException ex) {
+                logger.debug("Not connected");
+                return false;
+            }
+        } catch (MalformedURLException ex) {
+            logger.warn("Malformed device url");
             return false;
         }
     }
