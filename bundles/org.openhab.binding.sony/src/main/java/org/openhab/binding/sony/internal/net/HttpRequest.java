@@ -15,6 +15,7 @@ package org.openhab.binding.sony.internal.net;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -27,6 +28,7 @@ import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation.Builder;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
@@ -93,14 +95,18 @@ public class HttpRequest implements AutoCloseable {
     public HttpResponse sendGetCommand(final String url, final Header... rqstHeaders) {
         SonyUtil.validateNotEmpty(url, "url cannot be empty");
         try {
-            final Builder rqst = addHeaders(client.target(url).request(), rqstHeaders);
-            final Response content = rqst.get();
-
-            try {
-                final HttpResponse httpResponse = new HttpResponse(content);
-                return httpResponse;
-            } finally {
-                content.close();
+            final Builder request = addHeaders(client.target(url).request(), rqstHeaders);
+            try (final Response response = request.get()) {
+                // Sony may report ill-formed content response
+                final MultivaluedMap<String, Object> metadata = response.getMetadata();
+                final List<Object> content = metadata.get("Content-Type");
+                for (int index = 0; index < content.size(); index++) {
+                    if (content.get(index) instanceof String entry) {
+                        content.set(index, entry.replaceAll(".+:", "").trim());
+                    }
+                }
+                metadata.put("Content-Type", content);
+                return new HttpResponse(Response.fromResponse(response).replaceAll(metadata).build());
             }
         } catch (ProcessingException | IllegalStateException | IOException e) {
             logger.debug("Exception in sendGetCommand: {}", e.getMessage());
