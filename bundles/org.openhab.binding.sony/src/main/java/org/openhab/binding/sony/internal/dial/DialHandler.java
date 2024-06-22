@@ -51,7 +51,7 @@ public class DialHandler extends AbstractThingHandler<DialConfig> {
     private final Logger logger = LoggerFactory.getLogger(DialHandler.class);
 
     /** The protocol handler being used - will be null if not initialized. */
-    private final AtomicReference<@Nullable DialProtocol<ThingCallback<String>>> protocolHandler = new AtomicReference<>();
+    private final AtomicReference<@Nullable DialProtocol<ThingCallback>> protocolHandler = new AtomicReference<>();
 
     /** The clientBuilder used in HttpRequest */
     private final ClientBuilder clientBuilder;
@@ -76,7 +76,7 @@ public class DialHandler extends AbstractThingHandler<DialConfig> {
             return;
         }
 
-        final DialProtocol<ThingCallback<String>> localProtocolHandler = protocolHandler.get();
+        final DialProtocol<ThingCallback> localProtocolHandler = protocolHandler.get();
         if (localProtocolHandler == null) {
             logger.debug("Trying to handle a refresh command before a protocol handler has been created");
             return;
@@ -109,7 +109,7 @@ public class DialHandler extends AbstractThingHandler<DialConfig> {
         Objects.requireNonNull(channelUID, "channelUID cannot be null");
         Objects.requireNonNull(command, "command cannot be null");
 
-        final DialProtocol<ThingCallback<String>> localProtocolHandler = protocolHandler.get();
+        final DialProtocol<ThingCallback> localProtocolHandler = protocolHandler.get();
         if (localProtocolHandler == null) {
             logger.debug("Trying to handle a channel command before a protocol handler has been created");
             return;
@@ -160,24 +160,23 @@ public class DialHandler extends AbstractThingHandler<DialConfig> {
         logger.debug("Attempting connection to DIAL device...");
         try {
             SonyUtil.checkInterrupt();
-            final DialProtocol<ThingCallback<String>> localProtocolHandler = new DialProtocol<>(config,
-                    new ThingCallback<String>() {
-                        @Override
-                        public void statusChanged(final ThingStatus state, final ThingStatusDetail detail,
-                                final @Nullable String msg) {
-                            updateStatus(state, detail, msg);
-                        }
+            final DialProtocol<ThingCallback> localProtocolHandler = new DialProtocol<>(config, new ThingCallback() {
+                @Override
+                public void statusChanged(final ThingStatus state, final ThingStatusDetail detail,
+                        final @Nullable String msg) {
+                    updateStatus(state, detail, msg);
+                }
 
-                        @Override
-                        public void stateChanged(final String channelId, final State newState) {
-                            updateState(channelId, newState);
-                        }
+                @Override
+                public void stateChanged(final String channelId, final State newState) {
+                    updateState(channelId, newState);
+                }
 
-                        @Override
-                        public void setProperty(final String propertyName, final @Nullable String propertyValue) {
-                            getThing().setProperty(propertyName, propertyValue);
-                        }
-                    }, clientBuilder);
+                @Override
+                public void setProperty(final String propertyName, final @Nullable String propertyValue) {
+                    getThing().setProperty(propertyName, propertyValue);
+                }
+            }, clientBuilder);
 
             SonyUtil.checkInterrupt();
             final LoginUnsuccessfulResponse response = localProtocolHandler.login();
@@ -207,7 +206,7 @@ public class DialHandler extends AbstractThingHandler<DialConfig> {
 
     @Override
     protected void refreshState(boolean initial) {
-        final DialProtocol<ThingCallback<String>> protocol = protocolHandler.get();
+        final DialProtocol<ThingCallback> protocol = protocolHandler.get();
         if (protocol != null) {
             getThing().getChannels().stream().forEach(chn -> {
                 final String channelId = chn.getUID().getId();

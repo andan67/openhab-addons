@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
  * @author Tim Roberts - Initial contribution
  */
 @NonNullByDefault
-class ScalarWebBrowserProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebBrowserProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
 
     /**
      * The logger
@@ -71,7 +72,7 @@ class ScalarWebBrowserProtocol<T extends ThingCallback<String>> extends Abstract
      * @param callback the non-null callback
      */
     ScalarWebBrowserProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
+            final ScalarWebService service, final @NonNull T callback) {
         super(factory, context, service, callback);
     }
 

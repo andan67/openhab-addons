@@ -271,14 +271,14 @@ public abstract class AbstractSonySource implements SonySource {
                 final String service = ttd.getService();
                 if (service == null || service.isEmpty()) {
                     validationMessage.add("Invalid/missing service element");
-                } else if (!service.matches(AbstractUID.SEGMENT_PATTERN)) {
+                } else if (!AbstractUID.isValid(service)) {
                     validationMessage.add("Invalid service element (must be a valid UID): " + service);
                 }
 
                 final String modelName = ttd.getModelName();
                 if (modelName == null || modelName.isEmpty()) {
                     validationMessage.add("Invalid/missing modelName element");
-                } else if (!modelName.matches(AbstractUID.SEGMENT_PATTERN)) {
+                } else if (!AbstractUID.isValid(modelName)) {
                     validationMessage.add("Invalid modelName element (must be a valid UID): " + modelName);
                 }
 
@@ -310,7 +310,7 @@ public abstract class AbstractSonySource implements SonySource {
                     if (channelType == null || channelType.isEmpty()) {
                         channelValidationMessage.add("Missing channelType element");
                         continue;
-                    } else if (!channelType.matches(AbstractUID.SEGMENT_PATTERN)) {
+                    } else if (!AbstractUID.isValid(channelType)) {
                         channelValidationMessage
                                 .add("Invalid channelType element (must be a valid UID): " + channelType);
                         continue;

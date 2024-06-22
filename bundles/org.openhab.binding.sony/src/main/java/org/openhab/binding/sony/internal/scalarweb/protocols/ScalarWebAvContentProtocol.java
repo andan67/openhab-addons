@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
@@ -115,7 +116,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebAvContentProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
 
     // Default values for devices that have only a single output
     private static final String MAINOUTPUT = "main"; // cannot be empty as it's used as a channel id
@@ -368,7 +369,7 @@ class ScalarWebAvContentProtocol<T extends ThingCallback<String>> extends Abstra
      * @param callback the non-null callback
      */
     ScalarWebAvContentProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
+            final ScalarWebService service, final @NonNull T callback) {
         super(factory, context, service, callback);
         notificationHelper = new NotificationHelper(enableNotifications(ScalarWebEvent.NOTIFYPLAYINGCONTENTINFO,
                 /** ScalarWebEvent.NOTIFYAVAILABLEPLAYBACKFUNCTION, */

@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 import javax.ws.rs.client.ClientBuilder;
 
@@ -88,18 +89,19 @@ public class SonyHttpTransport extends AbstractSonyTransport {
     @Override
     public CompletableFuture<? extends TransportResult> execute(final TransportPayload payload,
             final TransportOption... options) {
-        Objects.requireNonNull(payload, "payload cannot be null");
+        final Stream<TransportOptionAutoAuth> oldOptions = getOptions(TransportOptionAutoAuth.class).stream();
+        final TransportOptionAutoAuth oldAutoAuth = oldOptions.findFirst().orElse(TransportOptionAutoAuth.FALSE);
+        Objects.requireNonNull(oldAutoAuth, "Transport option cannot be null");
 
-        final TransportOptionAutoAuth oldAutoAuth = getOptions(TransportOptionAutoAuth.class).stream().findFirst()
-                .orElse(TransportOptionAutoAuth.FALSE);
-        final TransportOptionAutoAuth newAutoAuth = getOptions(TransportOptionAutoAuth.class, options).stream()
-                .findFirst().orElse(oldAutoAuth);
+        final Stream<TransportOptionAutoAuth> newOptions = getOptions(TransportOptionAutoAuth.class, options).stream();
+        final TransportOptionAutoAuth newAutoAuth = newOptions.findFirst().orElse(oldAutoAuth);
+        Objects.requireNonNull(newAutoAuth, "Transport option cannot be null");
+
+        if (oldAutoAuth != newAutoAuth) {
+            setOption(newAutoAuth);
+        }
 
         try {
-            if (oldAutoAuth != newAutoAuth) {
-                setOption(newAutoAuth);
-            }
-
             final TransportOptionMethod method = getOptions(TransportOptionMethod.class, options).stream().findFirst()
                     .orElse(TransportOptionMethod.POST_JSON);
 

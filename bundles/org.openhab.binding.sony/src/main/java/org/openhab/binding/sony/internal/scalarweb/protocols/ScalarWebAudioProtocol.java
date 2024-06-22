@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
@@ -66,7 +67,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class ScalarWebAudioProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebAudioProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
 
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebAudioProtocol.class);
@@ -96,7 +97,7 @@ class ScalarWebAudioProtocol<T extends ThingCallback<String>> extends AbstractSc
      * @param callback the non-null callback to use
      */
     ScalarWebAudioProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService audioService, final T callback) {
+            final ScalarWebService audioService, final @NonNull T callback) {
         super(factory, context, audioService, callback);
         notificationHelper = new NotificationHelper(enableNotifications(ScalarWebEvent.NOTIFYVOLUMEINFORMATION));
 

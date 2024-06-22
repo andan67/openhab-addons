@@ -15,6 +15,7 @@ package org.openhab.binding.sony.internal.scalarweb.protocols;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.binding.sony.internal.ThingCallback;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannel;
@@ -30,7 +31,7 @@ import org.openhab.core.types.Command;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class ScalarWebGenericProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebGenericProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
     /**
      * Instantiates a new scalar web video protocol.
      *
@@ -39,7 +40,7 @@ class ScalarWebGenericProtocol<T extends ThingCallback<String>> extends Abstract
      * @param callback the non-null callback
      */
     ScalarWebGenericProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
+            final ScalarWebService service, final @NonNull T callback) {
         super(factory, context, service, callback);
     }
 

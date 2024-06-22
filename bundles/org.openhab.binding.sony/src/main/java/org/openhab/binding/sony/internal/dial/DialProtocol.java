@@ -18,10 +18,10 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import javax.ws.rs.client.ClientBuilder;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.http.HttpStatus;
@@ -60,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class DialProtocol<T extends ThingCallback<String>> implements AutoCloseable {
+class DialProtocol<@NonNull T extends ThingCallback> implements AutoCloseable {
 
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(DialProtocol.class);
@@ -91,11 +91,8 @@ class DialProtocol<T extends ThingCallback<String>> implements AutoCloseable {
      * @throws IOException if an ioexception is thrown
      * @throws URISyntaxException if a uri is malformed
      */
-    DialProtocol(final DialConfig config, final T callback, final ClientBuilder clientBuilder)
+    DialProtocol(final DialConfig config, final @NonNull T callback, final ClientBuilder clientBuilder)
             throws IOException, URISyntaxException {
-        Objects.requireNonNull(config, "config cannot be null");
-        Objects.requireNonNull(callback, "callback cannot be null");
-
         // Confirm the address is a valid URL
         final String deviceAddress = config.getDeviceAddress();
         final URL deviceURL = new URL(deviceAddress);

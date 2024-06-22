@@ -25,10 +25,9 @@ import org.openhab.core.types.State;
  * handler cannot access it directly.
  *
  * @author Tim Roberts - Initial contribution
- * @param <T> the generic type of the key to track state
  */
 @NonNullByDefault
-public interface ThingCallback<T> {
+public interface ThingCallback {
 
     /**
      * Callback to the bridge/thing to update the status of the bridge/thing.
@@ -37,7 +36,7 @@ public interface ThingCallback<T> {
      * @param detail a non-null {@link ThingStatusDetail}
      * @param msg a possibly null, possibly empty message
      */
-    void statusChanged(ThingStatus state, ThingStatusDetail detail, @Nullable String msg);
+    void statusChanged(final ThingStatus state, final ThingStatusDetail detail, final @Nullable String msg);
 
     /**
      * Callback to the bridge/thing to update the state of a channel in the bridge/thing.
@@ -45,7 +44,7 @@ public interface ThingCallback<T> {
      * @param channelId the non-null, non-empty channel id
      * @param newState the possibly null new state
      */
-    void stateChanged(T channelId, State newState);
+    void stateChanged(final String channelId, final State newState);
 
     /**
      * Callback to set a property in the bridge/thing.
@@ -53,5 +52,5 @@ public interface ThingCallback<T> {
      * @param propertyName a non-null, non-empty property name
      * @param propertyValue a possibly null, possibly empty property value
      */
-    void setProperty(String propertyName, @Nullable String propertyValue);
+    void setProperty(final String propertyName, final @Nullable String propertyValue);
 }

@@ -19,6 +19,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.ThingCallback;
@@ -36,13 +37,13 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type of callback
  */
 @NonNullByDefault
-public class ScalarWebProtocolFactory<T extends ThingCallback<String>> implements AutoCloseable {
+public class ScalarWebProtocolFactory<@NonNull T extends ThingCallback> implements AutoCloseable {
 
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebProtocolFactory.class);
 
     /** The protocols by service name (key is case insensitive) */
-    private final Map<String, ScalarWebProtocol<T>> protocols = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    private final Map<String, ScalarWebProtocol> protocols = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     /**
      * Instantiates a new scalar web protocol factory.
@@ -51,11 +52,8 @@ public class ScalarWebProtocolFactory<T extends ThingCallback<String>> implement
      * @param client the non-null state
      * @param callback the non-null callback
      */
-    public ScalarWebProtocolFactory(final ScalarWebContext context, final ScalarWebClient client, final T callback) {
-        Objects.requireNonNull(context, "context cannot be null");
-        Objects.requireNonNull(client, "client cannot be null");
-        Objects.requireNonNull(callback, "callback cannot be null");
-
+    public ScalarWebProtocolFactory(final ScalarWebContext context, final ScalarWebClient client,
+            final @NonNull T callback) {
         for (final ScalarWebService service : client.getDevice().getServices()) {
             final String serviceName = service.getServiceName();
             switch (serviceName) {
@@ -124,7 +122,7 @@ public class ScalarWebProtocolFactory<T extends ThingCallback<String>> implement
      * @param name the service name
      * @return the protocol or null if not found
      */
-    public @Nullable ScalarWebProtocol<T> getProtocol(final @Nullable String name) {
+    public @Nullable ScalarWebProtocol getProtocol(final @Nullable String name) {
         if (name == null || name.isEmpty()) {
             return null;
         }
@@ -161,7 +159,7 @@ public class ScalarWebProtocolFactory<T extends ThingCallback<String>> implement
         Objects.requireNonNull(scheduler, "scheduler cannot be null");
         logger.debug("Scheduling refreshState on all protocols");
         protocols.values().stream().forEach(p -> {
-            final ScalarWebProtocol<?> myProtocol = p;
+            final ScalarWebProtocol myProtocol = p;
             scheduler.execute(() -> {
                 logger.debug("Executing refreshState on {}", myProtocol);
                 myProtocol.refreshState(initial);

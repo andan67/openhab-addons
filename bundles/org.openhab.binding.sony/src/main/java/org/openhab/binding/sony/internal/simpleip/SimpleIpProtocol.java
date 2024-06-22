@@ -110,7 +110,7 @@ class SimpleIpProtocol implements SocketSessionListener, AutoCloseable {
     private final SimpleIpConfig config;
 
     /** The {@link ThingCallback} that we can callback to set state and status. */
-    private final ThingCallback<String> callback;
+    private final ThingCallback callback;
 
     /** The {@link TransformationService} to use */
     private final @Nullable TransformationService transformService;
@@ -159,10 +159,7 @@ class SimpleIpProtocol implements SocketSessionListener, AutoCloseable {
      * @throws IOException Signals that an I/O exception has occurred.
      */
     SimpleIpProtocol(final SimpleIpConfig config, final @Nullable TransformationService transformService,
-            final ThingCallback<String> callback) throws IOException {
-        Objects.requireNonNull(config, "config cannot be null");
-        Objects.requireNonNull(callback, "callback cannot be null");
-
+            final ThingCallback callback) throws IOException {
         this.config = config;
         this.transformService = transformService;
         this.callback = callback;

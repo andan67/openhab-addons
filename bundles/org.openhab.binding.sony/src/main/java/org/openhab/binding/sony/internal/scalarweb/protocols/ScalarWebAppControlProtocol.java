@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
@@ -59,7 +60,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class ScalarWebAppControlProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebAppControlProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebAppControlProtocol.class);
 
@@ -104,7 +105,7 @@ class ScalarWebAppControlProtocol<T extends ThingCallback<String>> extends Abstr
      * @param callback the non-null callback to
      */
     ScalarWebAppControlProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
+            final ScalarWebService service, final @NonNull T callback) {
         super(factory, context, service, callback);
     }
 

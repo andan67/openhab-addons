@@ -30,10 +30,12 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.binding.sony.internal.SonyUtil;
 import org.openhab.binding.sony.internal.ThingCallback;
+import org.openhab.binding.sony.internal.providers.SonyDynamicStateProvider;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannel;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannelDescriptor;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannelTracker;
@@ -77,7 +79,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>> implements ScalarWebProtocol<T> {
+public abstract class AbstractScalarWebProtocol<@NonNull T extends ThingCallback> implements ScalarWebProtocol {
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(AbstractScalarWebProtocol.class);
 
@@ -125,12 +127,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
      * @param callback the non-null callback to use
      */
     protected AbstractScalarWebProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
-        Objects.requireNonNull(factory, "factory cannot be null");
-        Objects.requireNonNull(context, "context cannot be null");
-        Objects.requireNonNull(service, "service cannot be null");
-        Objects.requireNonNull(callback, "callback cannot be null");
-
+            final ScalarWebService service, final @NonNull T callback) {
         this.factory = factory;
         this.context = context;
         this.service = service;
@@ -207,7 +204,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
             return service;
         }
 
-        final ScalarWebProtocol<T> protocol = factory.getProtocol(serviceName);
+        final ScalarWebProtocol protocol = factory.getProtocol(serviceName);
         return protocol == null ? null : protocol.getService();
     }
 
@@ -856,9 +853,9 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
         final String settingType = chl.getProperty(PROP_SETTINGTYPE, GeneralSetting.STRINGTARGET);
         final String deviceUi = chl.getProperty(PROP_DEVICEUI);
 
-        final StateDescription sd = getContext().getStateProvider().getStateDescription(getContext().getThingUID(),
-                chl.getChannelId());
-        if (sd != null & sd.isReadOnly()) {
+        final SonyDynamicStateProvider provider = getContext().getStateProvider();
+        final StateDescription sd = provider.getStateDescription(getContext().getThingUID(), chl.getChannelId());
+        if ((sd != null) && sd.isReadOnly()) {
             logger.debug("Method {} ({}) is readonly - ignoring: {}", method, target, cmd);
             return;
         }
@@ -972,7 +969,7 @@ public abstract class AbstractScalarWebProtocol<T extends ThingCallback<String>>
         if (serviceName.equalsIgnoreCase(getService().getServiceName())) {
             internalNotifySettingUpdate(notify);
         } else {
-            final @Nullable ScalarWebProtocol<T> protocol = getFactory().getProtocol(serviceName);
+            final @Nullable ScalarWebProtocol protocol = getFactory().getProtocol(serviceName);
             if (protocol == null) {
                 logger.debug("Received a notifySettingUpdate for an unknown service: {} - {}", serviceName, notify);
                 return;

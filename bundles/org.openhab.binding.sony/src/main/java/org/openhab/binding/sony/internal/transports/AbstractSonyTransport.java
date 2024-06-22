@@ -100,15 +100,13 @@ public abstract class AbstractSonyTransport implements SonyTransport {
 
     @Override
     public void setOption(final TransportOption option) {
-        Objects.requireNonNull(option, "option cannot be null");
-
-        if (option instanceof TransportOptionHeader) {
-            final String headerName = ((TransportOptionHeader) option).getHeader().getName();
-            options.removeIf(e -> e instanceof TransportOptionHeader
-                    && headerName.equalsIgnoreCase(((TransportOptionHeader) e).getHeader().getName()));
+        if (option instanceof TransportOptionHeader header) {
+            final String headerName = header.getHeader().getName();
+            options.removeIf(entry -> entry instanceof TransportOptionHeader
+                    && headerName.equalsIgnoreCase(((TransportOptionHeader) entry).getHeader().getName()));
         } else {
             final Class<?> optionClass = option.getClass();
-            options.removeIf(e -> optionClass.equals(e.getClass()));
+            options.removeIf(entry -> optionClass.equals(entry.getClass()));
         }
         options.add(option);
     }

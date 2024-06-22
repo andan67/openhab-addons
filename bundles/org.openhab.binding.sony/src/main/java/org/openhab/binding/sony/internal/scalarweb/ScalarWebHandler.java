@@ -91,13 +91,13 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
     /**
      * The protocol handler being used - will be null if not initialized.
      */
-    private final AtomicReference<@Nullable ScalarWebProtocolFactory<ThingCallback<String>>> protocolFactory = new AtomicReference<>(
+    private final AtomicReference<@Nullable ScalarWebProtocolFactory<ThingCallback>> protocolFactory = new AtomicReference<>(
             null);
 
     /**
      * The thing callback
      */
-    private final ThingCallback<String> callback;
+    private final ThingCallback callback;
 
     /**
      * The transformation service to use
@@ -151,13 +151,6 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             final SonyDynamicStateProvider sonyDynamicStateProvider, final Map<String, String> osgiProperties) {
         super(thing, ScalarWebConfig.class);
 
-        Objects.requireNonNull(thing, "thing cannot be null");
-        Objects.requireNonNull(webSocketClient, "webSocketClient cannot be null");
-        Objects.requireNonNull(clientBuilder, "clientBuilder cannot be null");
-        Objects.requireNonNull(sonyDefinitionProvider, "sonyDefinitionProvider cannot be null");
-        Objects.requireNonNull(sonyDynamicStateProvider, "sonyDynamicStateProvider cannot be null");
-        Objects.requireNonNull(osgiProperties, "osgiProperties cannot be null");
-
         this.transformationService = transformationService;
         this.webSocketClient = webSocketClient;
         this.clientBuilder = clientBuilder;
@@ -165,7 +158,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
         this.sonyDynamicStateProvider = sonyDynamicStateProvider;
         this.osgiProperties = osgiProperties;
 
-        callback = new ThingCallback<String>() {
+        callback = new ThingCallback() {
             @Override
             public void statusChanged(final ThingStatus state, final ThingStatusDetail detail,
                     final @Nullable String msg) {
@@ -267,14 +260,13 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
         }
         final ScalarWebChannel scalarChannel = new ScalarWebChannel(channelUID, channel);
 
-        final ScalarWebProtocolFactory<ThingCallback<String>> localProtocolFactory = protocolFactory.get();
+        final ScalarWebProtocolFactory<ThingCallback> localProtocolFactory = protocolFactory.get();
         if (localProtocolFactory == null) {
             logger.debug("Trying to handle a channel command before a protocol factory has been created");
             return;
         }
 
-        final ScalarWebProtocol<ThingCallback<String>> protocol = localProtocolFactory
-                .getProtocol(scalarChannel.getService());
+        final ScalarWebProtocol protocol = localProtocolFactory.getProtocol(scalarChannel.getService());
         if (protocol == null) {
             logger.debug("Unknown channel service: {} for {} and command {}", scalarChannel.getService(), channelUID,
                     command);
@@ -332,15 +324,15 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
             final ScalarWebClient client = ScalarWebClientFactory.get(scalarWebUrl, context);
             scalarClient.set(client);
 
-            final ScalarWebLoginProtocol<ThingCallback<String>> loginHandler = new ScalarWebLoginProtocol<>(client,
-                    config, callback, transformationService, clientBuilder);
+            final ScalarWebLoginProtocol<ThingCallback> loginHandler = new ScalarWebLoginProtocol<>(client, config,
+                    callback, transformationService, clientBuilder);
 
             final AccessResult result = loginHandler.login();
             SonyUtil.checkInterrupt();
 
             if (result.equals(AccessResult.OK)) {
-                final ScalarWebProtocolFactory<ThingCallback<String>> factory = new ScalarWebProtocolFactory<>(context,
-                        client, callback);
+                final ScalarWebProtocolFactory<ThingCallback> factory = new ScalarWebProtocolFactory<>(context, client,
+                        callback);
 
                 SonyUtil.checkInterrupt();
 
@@ -407,7 +399,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
      * @param factory the non-null factory to use
      * @return a non-null, possibly empty list of channels
      */
-    private Channel[] getChannels(final ScalarWebProtocolFactory<ThingCallback<String>> factory) {
+    private Channel[] getChannels(final ScalarWebProtocolFactory<ThingCallback> factory) {
         Objects.requireNonNull(factory, "factory cannot be null");
 
         final ThingUID thingUid = getThing().getUID();
@@ -497,7 +489,7 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
 
     @Override
     protected void refreshState(boolean initial) {
-        final ScalarWebProtocolFactory<ThingCallback<String>> protocolHandler = protocolFactory.get();
+        final ScalarWebProtocolFactory<ThingCallback> protocolHandler = protocolFactory.get();
         if (protocolHandler == null) {
             logger.debug("Protocol factory wasn't set");
         } else {
@@ -545,7 +537,6 @@ public class ScalarWebHandler extends AbstractThingHandler<ScalarWebConfig> {
     /**
      * A listener to definition changes (ie thing type changes)
      */
-    @NonNullByDefault
     private class DefinitionListener implements SonyModelListener {
         @Override
         public void thingTypeFound(final ThingTypeUID uid) {

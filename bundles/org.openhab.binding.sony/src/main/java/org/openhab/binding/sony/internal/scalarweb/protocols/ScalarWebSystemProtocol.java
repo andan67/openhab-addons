@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.http.HttpStatus;
@@ -80,7 +81,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-public class ScalarWebSystemProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+public class ScalarWebSystemProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebSystemProtocol.class);
 
@@ -149,7 +150,7 @@ public class ScalarWebSystemProtocol<T extends ThingCallback<String>> extends Ab
      * @param irccUrl the possibly null, possibly empty ircc url
      */
     ScalarWebSystemProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback, final @Nullable String irccUrl) {
+            final ScalarWebService service, final @NonNull T callback, final @Nullable String irccUrl) {
         super(factory, context, service, callback);
 
         this.irccUrl = irccUrl;

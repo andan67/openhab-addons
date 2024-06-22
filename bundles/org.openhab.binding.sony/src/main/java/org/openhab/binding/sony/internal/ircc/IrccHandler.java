@@ -51,7 +51,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
     private final Logger logger = LoggerFactory.getLogger(IrccHandler.class);
 
     /** The protocol handler being used - will be null if not initialized. */
-    private final AtomicReference<@Nullable IrccProtocol<ThingCallback<String>>> protocolHandler = new AtomicReference<>();
+    private final AtomicReference<@Nullable IrccProtocol<ThingCallback>> protocolHandler = new AtomicReference<>();
 
     /** The transformation service to use to transform the MAP file */
     private final @Nullable TransformationService transformationService;
@@ -82,7 +82,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
             return;
         }
 
-        final IrccProtocol<ThingCallback<String>> localProtocolHandler = protocolHandler.get();
+        final IrccProtocol<ThingCallback> localProtocolHandler = protocolHandler.get();
         if (localProtocolHandler == null) {
             logger.debug("Trying to handle a refresh command before a protocol handler has been created");
             return;
@@ -136,7 +136,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
         Objects.requireNonNull(channelUID, "channelUID cannot be null");
         Objects.requireNonNull(command, "command cannot be null");
 
-        final IrccProtocol<ThingCallback<String>> localProtocolHandler = protocolHandler.get();
+        final IrccProtocol<ThingCallback> localProtocolHandler = protocolHandler.get();
         if (localProtocolHandler == null) {
             logger.debug("Trying to handle a channel command before a protocol handler has been created");
             return;
@@ -236,7 +236,7 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
 
     @Override
     protected void refreshState(boolean initial) {
-        final IrccProtocol<ThingCallback<String>> localProtocolHandler = protocolHandler.get();
+        final IrccProtocol<ThingCallback> localProtocolHandler = protocolHandler.get();
         if (localProtocolHandler != null) {
             localProtocolHandler.refreshState();
         }
@@ -255,8 +255,8 @@ public class IrccHandler extends AbstractThingHandler<IrccConfig> {
         logger.debug("Attempting connection to IRCC device...");
         try {
             SonyUtil.checkInterrupt();
-            final IrccProtocol<ThingCallback<String>> localProtocolHandler = new IrccProtocol<>(config,
-                    transformationService, new ThingCallback<String>() {
+            final IrccProtocol<ThingCallback> localProtocolHandler = new IrccProtocol<>(config, transformationService,
+                    new ThingCallback() {
                         @Override
                         public void statusChanged(final ThingStatus state, final ThingStatusDetail detail,
                                 final @Nullable String msg) {

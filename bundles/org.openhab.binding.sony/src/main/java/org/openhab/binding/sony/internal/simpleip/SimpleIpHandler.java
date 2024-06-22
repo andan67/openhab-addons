@@ -291,7 +291,7 @@ public class SimpleIpHandler extends AbstractThingHandler<SimpleIpConfig> {
             SonyUtil.checkInterrupt();
 
             final SimpleIpProtocol localProtocolHandler = new SimpleIpProtocol(config, transformationService,
-                    new ThingCallback<String>() {
+                    new ThingCallback() {
                         @Override
                         public void statusChanged(final ThingStatus status, final ThingStatusDetail detail,
                                 final @Nullable String msg) {

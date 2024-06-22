@@ -15,7 +15,6 @@ package org.openhab.binding.sony.internal.scalarweb.protocols;
 import java.util.Collection;
 
 import org.eclipse.jdt.annotation.NonNullByDefault;
-import org.openhab.binding.sony.internal.ThingCallback;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannel;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannelDescriptor;
 import org.openhab.binding.sony.internal.scalarweb.models.ScalarWebService;
@@ -26,31 +25,30 @@ import org.openhab.core.types.Command;
  * The interface definition for all protocols
  *
  * @author Tim Roberts - Initial contribution
- * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-public interface ScalarWebProtocol<T extends ThingCallback<String>> {
+public interface ScalarWebProtocol {
     /**
      * Gets the channel descriptors
      *
      * @param dynamicOnly true to retrieve channel descriptors that are defined as dynamic
      * @return the channel descriptors
      */
-    public Collection<ScalarWebChannelDescriptor> getChannelDescriptors(boolean dynamicOnly);
+    Collection<ScalarWebChannelDescriptor> getChannelDescriptors(final boolean dynamicOnly);
 
     /**
      * Refresh state
      * 
      * @param initial true if this is the initial refresh state after going online, false otherwise
      */
-    public void refreshState(boolean initial);
+    void refreshState(final boolean initial);
 
     /**
      * Refresh channel
      *
      * @param channel the non-null channel
      */
-    public void refreshChannel(ScalarWebChannel channel);
+    void refreshChannel(final ScalarWebChannel channel);
 
     /**
      * Sets the channel
@@ -58,25 +56,25 @@ public interface ScalarWebProtocol<T extends ThingCallback<String>> {
      * @param channel the non-null channel
      * @param command the non-null command
      */
-    public void setChannel(ScalarWebChannel channel, Command command);
+    void setChannel(final ScalarWebChannel channel, final Command command);
 
     /**
      * Get the underlying service
      * 
      * @return a non-null underlying serivce
      */
-    public ScalarWebService getService();
+    ScalarWebService getService();
 
     /**
      * Called when notifying the protocol of a settings update
      * 
      * @param setting a non-null setting
      */
-    public void notifySettingUpdate(final NotifySettingUpdate setting);
+    void notifySettingUpdate(final NotifySettingUpdate setting);
 
     /**
      * Defines a close method to release resources. We do NOT implement AutoCloseable since that forces an exception
      * onto this method (which we don't need)
      */
-    public void close();
+    void close();
 }

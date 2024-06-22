@@ -17,6 +17,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.openhab.binding.sony.internal.ThingCallback;
 import org.openhab.binding.sony.internal.scalarweb.ScalarWebChannel;
@@ -38,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * @param <T> the generic type for the callback
  */
 @NonNullByDefault
-class ScalarWebCecProtocol<T extends ThingCallback<String>> extends AbstractScalarWebProtocol<T> {
+class ScalarWebCecProtocol<@NonNull T extends ThingCallback> extends AbstractScalarWebProtocol<T> {
 
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebCecProtocol.class);
@@ -56,11 +57,10 @@ class ScalarWebCecProtocol<T extends ThingCallback<String>> extends AbstractScal
      * @param factory the non-null factory
      * @param context the non-null context
      * @param service the non-null service
-     * @param scheduler the non-null scheduler
      * @param callback the non-null callback
      */
     ScalarWebCecProtocol(final ScalarWebProtocolFactory<T> factory, final ScalarWebContext context,
-            final ScalarWebService service, final T callback) {
+            final ScalarWebService service, final @NonNull T callback) {
         super(factory, context, service, callback);
     }
 

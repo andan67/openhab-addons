@@ -32,6 +32,7 @@ import java.util.Set;
 import javax.ws.rs.client.ClientBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.eclipse.jdt.annotation.NonNull;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.eclipse.jetty.http.HttpStatus;
@@ -77,7 +78,7 @@ import org.xml.sax.SAXException;
  * @param <T> the generic type callback
  */
 @NonNullByDefault
-public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
+public class ScalarWebLoginProtocol<@NonNull T extends ThingCallback> {
     /** The logger */
     private final Logger logger = LoggerFactory.getLogger(ScalarWebLoginProtocol.class);
 
@@ -109,13 +110,9 @@ public class ScalarWebLoginProtocol<T extends ThingCallback<String>> {
      * @param clientBuilder a client builder
      * @throws IOException
      */
-    public ScalarWebLoginProtocol(final ScalarWebClient client, final ScalarWebConfig config, final T callback,
+    public ScalarWebLoginProtocol(final ScalarWebClient client, final ScalarWebConfig config, final @NonNull T callback,
             final @Nullable TransformationService transformService, final ClientBuilder clientBuilder)
             throws IOException {
-        Objects.requireNonNull(client, "client cannot be null");
-        Objects.requireNonNull(config, "config cannot be null");
-        Objects.requireNonNull(callback, "callback cannot be null");
-
         this.scalarClient = client;
         this.config = config;
         this.callback = callback;
