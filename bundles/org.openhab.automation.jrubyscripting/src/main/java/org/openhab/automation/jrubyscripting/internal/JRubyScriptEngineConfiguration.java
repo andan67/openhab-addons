@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -79,7 +79,7 @@ public class JRubyScriptEngineConfiguration {
                     new OptionalConfigurationElement(OptionalConfigurationElement.Type.RUBY_ENVIRONMENT,
                             DEFAULT_RUBYLIB, "RUBYLIB")),
 
-            Map.entry(GEMS_CONFIG_KEY, new OptionalConfigurationElement("openhab-scripting=~>5.0.0")),
+            Map.entry(GEMS_CONFIG_KEY, new OptionalConfigurationElement("openhab-scripting=~>5.0")),
 
             Map.entry(REQUIRE_CONFIG_KEY, new OptionalConfigurationElement("openhab/dsl")),
 
@@ -274,7 +274,7 @@ public class JRubyScriptEngineConfiguration {
     /**
      * Configure the optional elements of the Ruby Environment
      * 
-     * @param engine Engine in which to configure environment
+     * @param scriptEngine Engine in which to configure environment
      */
     public void configureRubyEnvironment(ScriptEngine scriptEngine) {
         getConfigurationElements(OptionalConfigurationElement.Type.RUBY_ENVIRONMENT).forEach(configElement -> {

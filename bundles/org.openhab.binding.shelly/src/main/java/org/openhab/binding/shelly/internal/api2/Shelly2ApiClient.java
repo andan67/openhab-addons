@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -18,7 +18,6 @@ import static org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.*;
 import static org.openhab.binding.shelly.internal.util.ShellyUtils.*;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
@@ -32,12 +31,14 @@ import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyFavPos;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyInputState;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyRollerStatus;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySensorTmp;
+import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsDimmer;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsEMeter;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsInput;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsMeter;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsRelay;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsRoller;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellySettingsStatus;
+import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyShortLightStatus;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyShortStatusRelay;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusRelay;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSensor;
@@ -49,22 +50,25 @@ import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSe
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSensor.ShellyExtVoltage;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSensor.ShellySensorBat;
 import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSensor.ShellySensorHum;
-import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2AuthRequest;
-import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2AuthResponse;
+import org.openhab.binding.shelly.internal.api1.Shelly1ApiJsonDTO.ShellyStatusSensor.ShellySensorLux;
+import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2AuthRsp;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceConfig.Shelly2DevConfigCover;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceConfig.Shelly2DevConfigInput;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceConfig.Shelly2DevConfigSwitch;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceConfig.Shelly2GetConfigResult;
+import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusLight;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2CoverStatus;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusEm;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusHumidity;
+import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusIlluminance;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusPower;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusSmoke;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2DeviceStatusResult.Shelly2DeviceStatusTempId;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2DeviceStatus.Shelly2InputStatus;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2RelayStatus;
 import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2RpcBaseMessage;
+import org.openhab.binding.shelly.internal.api2.Shelly2ApiJsonDTO.Shelly2StatusEm1;
 import org.openhab.binding.shelly.internal.config.ShellyThingConfiguration;
 import org.openhab.binding.shelly.internal.handler.ShellyBaseHandler;
 import org.openhab.binding.shelly.internal.handler.ShellyComponents;
@@ -86,7 +90,7 @@ public class Shelly2ApiClient extends ShellyHttpClient {
     protected final ShellyStatusSensor sensorData = new ShellyStatusSensor();
     protected final ArrayList<ShellyRollerStatus> rollerStatus = new ArrayList<>();
     protected @Nullable ShellyThingInterface thing;
-    protected @Nullable Shelly2AuthRequest authReq;
+    protected @Nullable Shelly2AuthRsp authReq;
 
     public Shelly2ApiClient(String thingName, ShellyThingInterface thing) {
         super(thingName, thing);
@@ -97,64 +101,56 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         super(thingName, config, httpClient);
     }
 
-    protected static final Map<String, String> MAP_INMODE_BTNTYPE = new HashMap<>();
-    static {
-        MAP_INMODE_BTNTYPE.put(SHELLY2_BTNT_MOMENTARY, SHELLY_BTNT_MOMENTARY);
-        MAP_INMODE_BTNTYPE.put(SHELLY2_BTNT_FLIP, SHELLY_BTNT_TOGGLE);
-        MAP_INMODE_BTNTYPE.put(SHELLY2_BTNT_FOLLOW, SHELLY_BTNT_EDGE);
-        MAP_INMODE_BTNTYPE.put(SHELLY2_BTNT_DETACHED, SHELLY_BTNT_MOMENTARY);
-    }
+    protected static final Map<String, String> MAP_INMODE_BTNTYPE = Map.of(//
+            SHELLY2_BTNT_MOMENTARY, SHELLY_BTNT_MOMENTARY, //
+            SHELLY2_BTNT_FLIP, SHELLY_BTNT_TOGGLE, //
+            SHELLY2_BTNT_FOLLOW, SHELLY_BTNT_EDGE, //
+            SHELLY2_BTNT_DETACHED, SHELLY_BTNT_MOMENTARY);
 
-    protected static final Map<String, String> MAP_INPUT_EVENT_TYPE = new HashMap<>();
-    static {
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_1PUSH, SHELLY_BTNEVENT_1SHORTPUSH);
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_2PUSH, SHELLY_BTNEVENT_2SHORTPUSH);
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_3PUSH, SHELLY_BTNEVENT_3SHORTPUSH);
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_LPUSH, SHELLY_BTNEVENT_LONGPUSH);
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_LSPUSH, SHELLY_BTNEVENT_LONGSHORTPUSH);
-        MAP_INPUT_EVENT_TYPE.put(SHELLY2_EVENT_SLPUSH, SHELLY_BTNEVENT_SHORTLONGPUSH);
-    }
+    protected static final Map<String, String> MAP_INPUT_EVENT_TYPE = Map.of(//
+            SHELLY2_EVENT_1PUSH, SHELLY_BTNEVENT_1SHORTPUSH, //
+            SHELLY2_EVENT_2PUSH, SHELLY_BTNEVENT_2SHORTPUSH, //
+            SHELLY2_EVENT_3PUSH, SHELLY_BTNEVENT_3SHORTPUSH, //
+            SHELLY2_EVENT_LPUSH, SHELLY_BTNEVENT_LONGPUSH, //
+            SHELLY2_EVENT_LSPUSH, SHELLY_BTNEVENT_LONGSHORTPUSH, //
+            SHELLY2_EVENT_SLPUSH, SHELLY_BTNEVENT_SHORTLONGPUSH);
 
-    protected static final Map<String, String> MAP_INPUT_EVENT_ID = new HashMap<>();
-    static {
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_BTNUP, SHELLY_EVENT_BTN_OFF);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_BTNDOWN, SHELLY_EVENT_BTN_ON);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_1PUSH, SHELLY_EVENT_SHORTPUSH);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_2PUSH, SHELLY_EVENT_DOUBLE_SHORTPUSH);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_3PUSH, SHELLY_EVENT_TRIPLE_SHORTPUSH);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_LPUSH, SHELLY_EVENT_LONGPUSH);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_LSPUSH, SHELLY_EVENT_LONG_SHORTPUSH);
-        MAP_INPUT_EVENT_ID.put(SHELLY2_EVENT_SLPUSH, SHELLY_EVENT_SHORT_LONGTPUSH);
-    }
+    protected static final Map<String, String> MAP_INPUT_EVENT_ID = Map.of(//
+            SHELLY2_EVENT_BTNUP, SHELLY_EVENT_BTN_OFF, //
+            SHELLY2_EVENT_BTNDOWN, SHELLY_EVENT_BTN_ON, //
+            SHELLY2_EVENT_1PUSH, SHELLY_EVENT_SHORTPUSH, //
+            SHELLY2_EVENT_2PUSH, SHELLY_EVENT_DOUBLE_SHORTPUSH, //
+            SHELLY2_EVENT_3PUSH, SHELLY_EVENT_TRIPLE_SHORTPUSH, //
+            SHELLY2_EVENT_LPUSH, SHELLY_EVENT_LONGPUSH, //
+            SHELLY2_EVENT_LSPUSH, SHELLY_EVENT_LONG_SHORTPUSH, //
+            SHELLY2_EVENT_SLPUSH, SHELLY_EVENT_SHORT_LONGTPUSH);
 
-    protected static final Map<String, String> MAP_INPUT_MODE = new HashMap<>();
-    static {
-        MAP_INPUT_MODE.put(SHELLY2_RMODE_SINGLE, SHELLY_INP_MODE_ONEBUTTON);
-        MAP_INPUT_MODE.put(SHELLY2_RMODE_DUAL, SHELLY_INP_MODE_OPENCLOSE);
-        MAP_INPUT_MODE.put(SHELLY2_RMODE_DETACHED, SHELLY_INP_MODE_ONEBUTTON);
-    }
+    protected static final Map<String, String> MAP_INPUT_MODE = Map.of(//
+            SHELLY2_RMODE_SINGLE, SHELLY_INP_MODE_ONEBUTTON, //
+            SHELLY2_RMODE_DUAL, SHELLY_INP_MODE_OPENCLOSE, //
+            SHELLY2_RMODE_DETACHED, SHELLY_INP_MODE_ONEBUTTON);
 
-    protected static final Map<String, String> MAP_ROLLER_STATE = new HashMap<>();
-    static {
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_OPEN, SHELLY_RSTATE_OPEN);
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_CLOSED, SHELLY_RSTATE_CLOSE);
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_OPENING, SHELLY2_RSTATE_OPENING); // Gen2-only
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_CLOSING, SHELLY2_RSTATE_CLOSING); // Gen2-only
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_STOPPED, SHELLY_RSTATE_STOP);
-        MAP_ROLLER_STATE.put(SHELLY2_RSTATE_CALIB, SHELLY2_RSTATE_CALIB); // Gen2-only
-    }
+    protected static final Map<String, String> MAP_ROLLER_STATE = Map.of(//
+            SHELLY2_RSTATE_OPEN, SHELLY_RSTATE_OPEN, //
+            SHELLY2_RSTATE_CLOSED, SHELLY_RSTATE_CLOSE, //
+            SHELLY2_RSTATE_OPENING, SHELLY2_RSTATE_OPENING, // Gen2-only
+            SHELLY2_RSTATE_CLOSING, SHELLY2_RSTATE_CLOSING, // Gen2-only
+            SHELLY2_RSTATE_STOPPED, SHELLY_RSTATE_STOP, //
+            SHELLY2_RSTATE_CALIB, SHELLY2_RSTATE_CALIB); // Gen2-only
+
+    protected static final Map<String, String> MAP_PROFILE = Map.of(//
+            SHELLY_CLASS_RELAY, SHELLY2_PROFILE_RELAY, //
+            SHELLY_CLASS_ROLLER, SHELLY2_PROFILE_COVER);
 
     protected @Nullable ArrayList<@Nullable ShellySettingsRelay> fillRelaySettings(ShellyDeviceProfile profile,
             Shelly2GetConfigResult dc) {
-        if (dc.switch0 == null) {
-            return null;
-        }
         ArrayList<@Nullable ShellySettingsRelay> relays = new ArrayList<>();
         addRelaySettings(relays, dc.switch0);
         addRelaySettings(relays, dc.switch1);
         addRelaySettings(relays, dc.switch2);
         addRelaySettings(relays, dc.switch3);
-        return relays;
+        addRelaySettings(relays, dc.switch100);
+        return !relays.isEmpty() ? relays : null;
     }
 
     private void addRelaySettings(ArrayList<@Nullable ShellySettingsRelay> relays,
@@ -164,6 +160,8 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         }
 
         ShellySettingsRelay rsettings = new ShellySettingsRelay();
+        rsettings.id = cs.id;
+        rsettings.isValid = cs.id != null;
         rsettings.name = cs.name;
         rsettings.ison = false;
         rsettings.autoOn = getBool(cs.autoOn) ? cs.autoOnDelay : 0;
@@ -177,7 +175,10 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             boolean channelUpdate) throws ShellyApiException {
         boolean updated = false;
 
-        if (result.temperature0 != null && !getProfile().isSensor) {
+        if (result.temperature0 != null && result.temperature0.tC != null && !getProfile().isSensor) {
+            if (status.tmp == null) {
+                status.tmp = new ShellySensorTmp();
+            }
             status.temperature = status.tmp.tC = result.temperature0.tC;
         }
 
@@ -186,14 +187,20 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         updated |= updateRelayStatus(status, result.switch1, channelUpdate);
         updated |= updateRelayStatus(status, result.switch2, channelUpdate);
         updated |= updateRelayStatus(status, result.switch3, channelUpdate);
+        updated |= updateRelayStatus(status, result.switch100, channelUpdate);
+        updated |= updateRelayStatus(status, result.pm10, channelUpdate);
         updated |= updateEmStatus(status, result.em0, channelUpdate);
+        updated |= updateEmStatus(status, result.em10, channelUpdate);
+        updated |= updateEmStatus(status, result.em11, channelUpdate);
         updated |= updateRollerStatus(status, result.cover0, channelUpdate);
+        updated |= updateDimmerStatus(status, result.light0, channelUpdate);
         if (channelUpdate) {
             updated |= ShellyComponents.updateMeters(getThing(), status);
         }
 
         updateHumidityStatus(sensorData, result.humidity0);
         updateTemperatureStatus(sensorData, result.temperature0);
+        updateIlluminanceStatus(sensorData, result.illuminance0);
         updateSmokeStatus(sensorData, result.smoke0);
         updateBatteryStatus(sensorData, result.devicepower0);
         updateAddonStatus(status, result);
@@ -207,12 +214,22 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             return false;
         }
         ShellyDeviceProfile profile = getProfile();
-        if (rs.id >= profile.numRelays) {
-            throw new IllegalArgumentException("Update for invalid relay index");
+
+        ShellySettingsRelay rstatus;
+        ShellyShortStatusRelay sr;
+        int rIdx = getRelayIdx(profile, rs.id);
+        if (profile.hasRelays) {
+            if (rIdx == -1) {
+                throw new IllegalArgumentException("Update for invalid relay index");
+            }
+            rstatus = status.relays.get(rIdx);
+            sr = relayStatus.relays.get(rIdx);
+        } else {
+            rstatus = new ShellySettingsRelay();
+            sr = new ShellyShortStatusRelay();
+            rIdx = rs.id;
         }
 
-        ShellySettingsRelay rstatus = status.relays.get(rs.id);
-        ShellyShortStatusRelay sr = relayStatus.relays.get(rs.id);
         sr.isValid = rstatus.isValid = true;
         sr.name = rstatus.name = status.name;
         if (rs.output != null) {
@@ -223,6 +240,9 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             sr.timerRemaining = duration;
         }
         if (rs.temperature != null) {
+            if (status.tmp == null) {
+                status.tmp = new ShellySensorTmp();
+            }
             status.tmp.isValid = true;
             status.tmp.tC = rs.temperature.tC;
             status.tmp.tF = rs.temperature.tF;
@@ -231,14 +251,8 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             if (status.temperature == null || getDouble(rs.temperature.tC) > status.temperature) {
                 status.temperature = sr.temperature;
             }
-        } else {
-            status.tmp.isValid = false;
         }
-        if (rs.voltage != null) {
-            if (status.voltage == null || rs.voltage > status.voltage) {
-                status.voltage = rs.voltage;
-            }
-        }
+
         if (rs.errors != null) {
             for (String error : rs.errors) {
                 sr.overpower = rstatus.overpower = SHELLY2_ERROR_OVERPOWER.equals(error);
@@ -249,12 +263,12 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         }
 
         ShellySettingsMeter sm = new ShellySettingsMeter();
-        ShellySettingsEMeter emeter = status.emeters.get(rs.id);
-        sm.isValid = emeter.isValid = true;
+        ShellySettingsEMeter emeter = status.emeters != null ? status.emeters.get(rIdx) : new ShellySettingsEMeter();
         if (rs.apower != null) {
             sm.power = emeter.power = rs.apower;
         }
         if (rs.aenergy != null) {
+            // Gen2 reports Watt, needs to be converted to W/h
             sm.total = emeter.total = rs.aenergy.total;
             sm.counters = rs.aenergy.byMinute;
             sm.timestamp = rs.aenergy.minuteTs;
@@ -269,18 +283,72 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             emeter.pf = rs.pf;
         }
 
-        // Update internal structures
-        status.relays.set(rs.id, rstatus);
-        relayStatus.relays.set(rs.id, sr);
-        updateMeter(status, rs.id, sm, emeter, channelUpdate);
-        return channelUpdate ? ShellyComponents.updateRelay((ShellyBaseHandler) getThing(), status, rs.id) : false;
+        if (profile.hasRelays) {
+            // Update internal structures
+            status.relays.set(rIdx, rstatus);
+            relayStatus.relays.set(rIdx, sr);
+        }
+
+        updateMeter(status, rIdx, sm, emeter, channelUpdate);
+        return channelUpdate && profile.hasRelays
+                ? ShellyComponents.updateRelay((ShellyBaseHandler) getThing(), status, rIdx)
+                : false;
+    }
+
+    private int getRelayIdx(ShellyDeviceProfile profile, @Nullable Integer id) {
+        if (id != null && profile.settings.relays != null) {
+            int idx = 0;
+            for (ShellySettingsRelay relay : profile.settings.relays) {
+                if (relay.isValid && relay.id != null && relay.id.intValue() == id.intValue()) {
+                    return idx;
+                }
+                idx++;
+            }
+        }
+        return -1;
     }
 
     private void updateMeter(ShellySettingsStatus status, int id, ShellySettingsMeter sm, ShellySettingsEMeter emeter,
             boolean channelUpdate) throws ShellyApiException {
+        if (getProfile().numMeters == 0) {
+            return;
+        }
+        sm.isValid = sm.power != null || sm.total != null;
+        emeter.isValid = emeter.current != null || emeter.voltage != null || emeter.power != null
+                || emeter.total != null;
         status.meters.set(id, sm);
         status.emeters.set(id, emeter);
         relayStatus.meters.set(id, sm);
+    }
+
+    private boolean updateEmStatus(ShellySettingsStatus status, @Nullable Shelly2StatusEm1 em, boolean channelUpdate)
+            throws ShellyApiException {
+        if (em == null) {
+            return false;
+        }
+
+        ShellySettingsMeter sm = new ShellySettingsMeter();
+        ShellySettingsEMeter emeter = status.emeters.get(em.id);
+        if (em.actPower != null) {
+            sm.power = emeter.power = em.actPower;
+        }
+        if (em.aptrPower != null) {
+            emeter.totalReturned = em.aptrPower;
+        }
+        if (em.voltage != null) {
+            emeter.voltage = em.voltage;
+        }
+        if (em.current != null) {
+            emeter.current = em.current;
+        }
+        if (em.pf != null) {
+            emeter.pf = em.pf;
+        }
+        // Update internal structures
+        updateMeter(status, em.id, sm, emeter, channelUpdate);
+
+        postAlarms(em.errors);
+        return channelUpdate ? ShellyComponents.updateMeters(getThing(), status) : false;
     }
 
     private boolean updateEmStatus(ShellySettingsStatus status, @Nullable Shelly2DeviceStatusEm em,
@@ -289,10 +357,18 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             return false;
         }
 
-        boolean updated = false;
+        if (em.totalCurrent != null) {
+            status.totalCurrent = em.totalCurrent;
+        }
+        if (em.totalActPower != null) {
+            status.totalPower = em.totalActPower;
+        }
+        if (em.totalAprtPower != null) {
+            status.totalReturned = em.totalAprtPower;
+        }
+
         ShellySettingsMeter sm = new ShellySettingsMeter();
         ShellySettingsEMeter emeter = status.emeters.get(0);
-        sm.isValid = emeter.isValid = true;
         if (em.aActPower != null) {
             sm.power = emeter.power = em.aActPower;
         }
@@ -311,47 +387,51 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         // Update internal structures
         updateMeter(status, 0, sm, emeter, channelUpdate);
 
-        sm = new ShellySettingsMeter();
-        emeter = status.emeters.get(1);
-        sm.isValid = emeter.isValid = true;
-        if (em.bActPower != null) {
-            sm.power = emeter.power = em.bActPower;
+        if (status.emeters.size() > 1) {
+            sm = new ShellySettingsMeter();
+            emeter = status.emeters.get(1);
+            sm.isValid = emeter.isValid = true;
+            if (em.bActPower != null) {
+                sm.power = emeter.power = em.bActPower;
+            }
+            if (em.bAprtPower != null) {
+                emeter.totalReturned = em.bAprtPower;
+            }
+            if (em.bVoltage != null) {
+                emeter.voltage = em.bVoltage;
+            }
+            if (em.bCurrent != null) {
+                emeter.current = em.bCurrent;
+            }
+            if (em.bPF != null) {
+                emeter.pf = em.bPF;
+            }
+            // Update internal structures
+            updateMeter(status, 1, sm, emeter, channelUpdate);
         }
-        if (em.bAprtPower != null) {
-            emeter.totalReturned = em.bAprtPower;
-        }
-        if (em.bVoltage != null) {
-            emeter.voltage = em.bVoltage;
-        }
-        if (em.bCurrent != null) {
-            emeter.current = em.bCurrent;
-        }
-        if (em.bPF != null) {
-            emeter.pf = em.bPF;
-        }
-        // Update internal structures
-        updateMeter(status, 1, sm, emeter, channelUpdate);
 
-        sm = new ShellySettingsMeter();
-        emeter = status.emeters.get(2);
-        sm.isValid = emeter.isValid = true;
-        if (em.cActPower != null) {
-            sm.power = emeter.power = em.cActPower;
+        if (status.emeters.size() > 2) {
+            sm = new ShellySettingsMeter();
+            emeter = status.emeters.get(2);
+            sm.isValid = emeter.isValid = true;
+            if (em.cActPower != null) {
+                sm.power = emeter.power = em.cActPower;
+            }
+            if (em.cAprtPower != null) {
+                emeter.totalReturned = em.cAprtPower;
+            }
+            if (em.cVoltage != null) {
+                emeter.voltage = em.cVoltage;
+            }
+            if (em.cCurrent != null) {
+                emeter.current = em.cCurrent;
+            }
+            if (em.cPF != null) {
+                emeter.pf = em.cPF;
+            }
+            // Update internal structures
+            updateMeter(status, 2, sm, emeter, channelUpdate);
         }
-        if (em.cAprtPower != null) {
-            emeter.totalReturned = em.cAprtPower;
-        }
-        if (em.cVoltage != null) {
-            emeter.voltage = em.cVoltage;
-        }
-        if (em.cCurrent != null) {
-            emeter.current = em.cCurrent;
-        }
-        if (em.cPF != null) {
-            emeter.pf = em.cPF;
-        }
-        // Update internal structures
-        updateMeter(status, 2, sm, emeter, channelUpdate);
 
         return channelUpdate ? ShellyComponents.updateMeters(getThing(), status) : false;
     }
@@ -406,7 +486,7 @@ public class Shelly2ApiClient extends ShellyHttpClient {
                 fav.name = fav.pos + "%";
                 profile.settings.favorites.add(fav);
             }
-            profile.settings.favoritesEnabled = profile.settings.favorites.size() > 0;
+            profile.settings.favoritesEnabled = !profile.settings.favorites.isEmpty();
             logger.debug("{}: Roller Favorites loaded: {}", thingName,
                     profile.settings.favoritesEnabled ? profile.settings.favorites.size() : "none");
         }
@@ -424,7 +504,7 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         rs.isValid = sm.isValid = emeter.isValid = true;
         if (cs.state != null) {
             if (!getString(rs.state).equals(cs.state)) {
-                logger.debug("{}: Roller status changed from {} to {}, updateChannels={}", thingName, rs.state,
+                logger.debug("{}: Roller status changed from {} to {}, updateChannels={}", thingName, rs.state,
                         mapValue(MAP_ROLLER_STATE, cs.state), updateChannels);
             }
             rs.state = mapValue(MAP_ROLLER_STATE, cs.state);
@@ -437,6 +517,9 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             rs.duration = (int) (now() - cs.moveStartedAt.longValue());
         }
         if (cs.temperature != null && cs.temperature.tC > getDouble(status.temperature)) {
+            if (status.tmp == null) {
+                status.tmp = new ShellySensorTmp();
+            }
             status.temperature = status.tmp.tC = getDouble(cs.temperature.tC);
         }
         if (cs.apower != null) {
@@ -473,6 +556,46 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         return updateChannels ? ShellyComponents.updateRoller((ShellyBaseHandler) getThing(), rs, cs.id) : false;
     }
 
+    protected void fillDimmerSettings(ShellyDeviceProfile profile, Shelly2GetConfigResult dc) {
+        if (!profile.isDimmer || dc.light0 == null) {
+            return;
+        }
+
+        if (profile.settings.dimmers != null) {
+            ShellySettingsDimmer ds = profile.settings.dimmers.get(0);
+            ds.autoOn = dc.light0.autoOnDelay;
+            ds.autoOff = dc.light0.autoOffDelay;
+            ds.name = dc.light0.name;
+            profile.settings.dimmers.set(0, ds);
+        }
+    }
+
+    private boolean updateDimmerStatus(ShellySettingsStatus status, @Nullable Shelly2DeviceStatusLight value,
+            boolean channelUpdate) throws ShellyApiException {
+        ShellyDeviceProfile profile = getProfile();
+        if (!profile.isDimmer || value == null) {
+            return false;
+        }
+
+        ShellyShortLightStatus ds = status.dimmers.get(0);
+        if (value.brightness != null) {
+            ds.brightness = value.brightness.intValue();
+        }
+        ds.ison = value.output;
+        ds.hasTimer = value.timerStartedAt != null;
+        ds.timerDuration = getDuration(value.timerStartedAt, value.timerDuration);
+        status.dimmers.set(0, ds);
+        return channelUpdate ? ShellyComponents.updateDimmers(getThing(), status) : false;
+    }
+
+    protected @Nullable Integer getDuration(@Nullable Double timerStartedAt, @Nullable Integer timerDuration) {
+        if (timerStartedAt == null || timerDuration == null) {
+            return null;
+        }
+        int duration = (int) (now() - timerStartedAt.longValue());
+        return duration <= timerDuration ? timerDuration - duration : 0;
+    }
+
     // Addon
     private void updateAddonStatus(ShellySettingsStatus status, @Nullable Shelly2DeviceStatusResult ds)
             throws ShellyApiException {
@@ -497,7 +620,11 @@ public class Shelly2ApiClient extends ShellyHttpClient {
             status.extVoltage = new ShellyExtVoltage(ds.voltmeter100.voltage);
         }
         if (ds.input100 != null) {
-            status.extDigitalInput = new ShellyExtDigitalInput(getBool(ds.input100.state));
+            if (ds.input100.state != null) {
+                status.extDigitalInput = new ShellyExtDigitalInput(getBool(ds.input100.state));
+            } else if (ds.input100.percent != null) {
+                status.extAnalogInput = new ShellyExtAnalogInput(getDouble(ds.input100.percent));
+            }
         }
     }
 
@@ -533,6 +660,18 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         sdata.tmp.units = SHELLY_TEMP_CELSIUS;
         sdata.tmp.tC = value.tC;
         sdata.tmp.tF = value.tF;
+    }
+
+    protected void updateIlluminanceStatus(ShellyStatusSensor sdata, @Nullable Shelly2DeviceStatusIlluminance value) {
+        if (value == null) {
+            return;
+        }
+        if (sdata.lux == null) {
+            sdata.lux = new ShellySensorLux();
+        }
+        sdata.lux.isValid = value.lux != null;
+        sdata.lux.value = value.lux;
+        sdata.lux.illumination = value.illumination;
     }
 
     protected void updateSmokeStatus(ShellyStatusSensor sdata, @Nullable Shelly2DeviceStatusSmoke value) {
@@ -640,28 +779,11 @@ public class Shelly2ApiClient extends ShellyHttpClient {
     protected Shelly2RpcBaseMessage buildRequest(String method, @Nullable Object params) throws ShellyApiException {
         Shelly2RpcBaseMessage request = new Shelly2RpcBaseMessage();
         request.id = Math.abs(random.nextInt());
-        request.src = thingName;
+        request.src = "openhab-" + config.localIp; // use a unique identifier;
         request.method = !method.contains(".") ? SHELLYRPC_METHOD_CLASS_SHELLY + "." + method : method;
         request.params = params;
         request.auth = authReq;
         return request;
-    }
-
-    protected Shelly2AuthRequest buildAuthRequest(Shelly2AuthResponse authParm, String user, String realm,
-            String password) throws ShellyApiException {
-        Shelly2AuthRequest authReq = new Shelly2AuthRequest();
-        authReq.username = "admin";
-        authReq.realm = realm;
-        authReq.nonce = authParm.nonce;
-        authReq.cnonce = (long) Math.floor(Math.random() * 10e8);
-        authReq.nc = authParm.nc != null ? authParm.nc : 1;
-        authReq.authType = SHELLY2_AUTHTTYPE_DIGEST;
-        authReq.algorithm = SHELLY2_AUTHALG_SHA256;
-        String ha1 = sha256(authReq.username + ":" + authReq.realm + ":" + password);
-        String ha2 = SHELLY2_AUTH_NOISE;
-        authReq.response = sha256(
-                ha1 + ":" + authReq.nonce + ":" + authReq.nc + ":" + authReq.cnonce + ":" + "auth" + ":" + ha2);
-        return authReq;
     }
 
     protected String mapValue(Map<String, String> map, @Nullable String key) {
@@ -684,7 +806,7 @@ public class Shelly2ApiClient extends ShellyHttpClient {
         throw new ShellyApiException("Thing/profile not initialized!");
     }
 
-    ShellyDeviceProfile getProfile() throws ShellyApiException {
+    protected ShellyDeviceProfile getProfile() throws ShellyApiException {
         if (thing != null) {
             return thing.getProfile();
         }

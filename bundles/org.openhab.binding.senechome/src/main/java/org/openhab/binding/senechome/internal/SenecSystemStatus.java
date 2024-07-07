@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -118,6 +118,8 @@ public enum SenecSystemStatus {
     ERROR_DRM0(94, "ERROR DRM0"),
     BATTERY_DIAGNOSIS(95, "BATTERY DIAGNOSIS"),
     SAFETY_DISCHARGE(97, "SAFETY DISCHARGE"),
+    BMS_ERROR_MODULE_IMBALANCE(98, "BMS ERROR - MODULE IMBALANCE"),
+    WAKEUP_CHARGE(99, "WAKE-UP CHARGE"),
     UNKNOWN(-1, "UNKNOWN");
 
     private int code;

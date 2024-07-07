@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -108,7 +108,6 @@ public class HTTPHandler {
                         latestTime = iterTime;
                         latestData = iterData;
                     } // else - found item is older - nothing to do
-
                 } else {
                     logger.warn("One or two dates cannot be decoded 1) {} 2) {}", iterTimeStr, latestTimeStr);
                 }

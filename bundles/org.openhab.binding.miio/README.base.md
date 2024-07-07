@@ -109,6 +109,7 @@ However, many devices share large similarities with existing devices.
 The binding allows to try/test if your new device is working with database files of older devices as well.
 
 There are 3 ways to get unsupported devices working:
+
 - by overriding the model with the model of a similar supported device. E.g. this works great for roborock vacuum devices and yeelight devices). See [Substitute model for unsupported devices](#substitute-model-for-unsupported-devices)
 - by switching on the `(experimental) Create channels for new/unsupported devices (MIOT protocol)` channel, this works for most newer devices. See [Create support for new devices based on online published spec database](#create-support-for-new-devices-based-on-online-published-spec-database)
 - by switching on the `(experimental) Create channels / test properties for unsupported devices (legacy protocol)` channel. This works for older / legacy devices. It test all known properties to see which are supported by your device. See [Supported property test for unsupported devices](#supported-property-test-for-unsupported-devices)
@@ -247,10 +248,18 @@ Additionally depending on the capabilities of your robot vacuum other channels m
 | Switch  | status#water_box_status           | Water Box Status           |
 | Switch  | status#lock_status                | Lock Status                |
 | Number  | status#water_box_mode             | Water Box Mode             |
+| Number  | status#mop_mode                   | Mop Mode                   |
 | Switch  | status#water_box_carriage_status  | Water Box Carriage Status  |
 | Switch  | status#mop_forbidden_enable       | Mop Forbidden              |
 | Switch  | status#is_locating                | Robot is locating          |
 | Number  | actions#segment                   | Room Clean  (enter room #) |
+| Switch  | actions#collect_dust              | Start collecting dust      |
+| Switch  | actions#clean_mop_start           | Start mop wash             |
+| Switch  | actions#clean_mop_stop            | Stop mop wash              |
+| Number  | status#mop_drying_time            | Mop drying Time            |
+| Switch  | status#is_mop_drying              | Mop cleaning active        |
+| Number  | status#dock_state_id              | Dock status id             |
+| String  | status#dock_state                 | Dock status message        |
 
 Note: cleaning map is only available with cloud access.
 
@@ -267,6 +276,8 @@ This allows you to control the colors, if logo is displayed, if and what text is
 To (re-)read the file either restart openHAB, restart the binding or alternatively edit the thing and make (any) minor change.
 Note, cropping is disabled (hence showing like the maps in OH3.1 and earlier) for any `cropBorder` value < 0.
 Note, not all the values need to be in the json file, e.g. a subset of the parameters also works, the parameters not in the `mapConfig.json` will take the default values.
+
+### Basic, gateway and lumi Things channels
 
 !!!channelList
 
@@ -315,6 +326,8 @@ Switch lastCompleted  "Last Cleaning Completed"    (gVacLast) {channel="miio:vac
 
 Image map "Cleaning Map" (gVacLast) {channel="miio:vacuum:034F0E45:cleaning#map"}
 ```
+
+### Basic, gateway and lumi Things item files examples
 
 !!!itemFileExamples
 

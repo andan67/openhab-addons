@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -57,7 +57,7 @@ public class SerialBridgeThingHandler extends KNXBridgeBaseThingHandler {
         SerialBridgeConfiguration config = getConfigAs(SerialBridgeConfiguration.class);
         client = new SerialClient(config.getAutoReconnectPeriod(), thing.getUID(), config.getResponseTimeout(),
                 config.getReadingPause(), config.getReadRetriesLimit(), getScheduler(), config.getSerialPort(),
-                config.useCemi(), serialPortManager, this);
+                config.useCemi(), serialPortManager, getCommandExtensionData(), this);
 
         updateStatus(ThingStatus.UNKNOWN);
         // delay actual initialization, allow for longer runtime of actual initialization

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2023 Contributors to the openHAB project
+ * Copyright (c) 2010-2024 Contributors to the openHAB project
  *
  * See the NOTICE file(s) distributed with this work for additional
  * information.
@@ -25,6 +25,7 @@ import org.openhab.binding.netatmo.internal.api.NetatmoException;
 import org.openhab.binding.netatmo.internal.api.SecurityApi;
 import org.openhab.binding.netatmo.internal.api.data.NetatmoConstants.FeatureArea;
 import org.openhab.binding.netatmo.internal.api.data.NetatmoConstants.FloodLightMode;
+import org.openhab.binding.netatmo.internal.api.data.NetatmoConstants.SirenStatus;
 import org.openhab.binding.netatmo.internal.api.dto.HomeData;
 import org.openhab.binding.netatmo.internal.api.dto.HomeDataModule;
 import org.openhab.binding.netatmo.internal.api.dto.HomeDataPerson;
@@ -64,29 +65,31 @@ class SecurityCapability extends RestCapability<SecurityApi> {
     public void initialize() {
         super.initialize();
         freshestEventTime = null;
-        securityId = handler.getConfiguration().as(HomeConfiguration.class).getIdForArea(FeatureArea.SECURITY);
+        securityId = handler.getThingConfigAs(HomeConfiguration.class).getIdForArea(FeatureArea.SECURITY);
     }
 
     @Override
     protected void updateHomeData(HomeData homeData) {
-        persons = homeData.getPersons();
-        modules = homeData.getModules();
-        handler.getActiveChildren(FeatureArea.SECURITY).forEach(childHandler -> {
-            String childId = childHandler.getId();
-            persons.getOpt(childId)
-                    .ifPresentOrElse(personData -> childHandler.setNewData(personData.ignoringForThingUpdate()), () -> {
-                        modules.getOpt(childId)
-                                .ifPresent(childData -> childHandler.setNewData(childData.ignoringForThingUpdate()));
-                        modules.values().stream().filter(module -> childId.equals(module.getBridge()))
-                                .forEach(bridgedModule -> childHandler.setNewData(bridgedModule));
-                    });
-        });
+        if (homeData instanceof HomeData.Security securityData) {
+            persons = securityData.getPersons();
+            modules = homeData.getModules();
+            handler.getActiveChildren(FeatureArea.SECURITY).forEach(childHandler -> {
+                String childId = childHandler.getId();
+                persons.getOpt(childId).ifPresentOrElse(
+                        personData -> childHandler.setNewData(personData.ignoringForThingUpdate()), () -> {
+                            modules.getOpt(childId).ifPresent(
+                                    childData -> childHandler.setNewData(childData.ignoringForThingUpdate()));
+                            modules.values().stream().filter(module -> childId.equals(module.getBridge()))
+                                    .forEach(bridgedModule -> childHandler.setNewData(bridgedModule));
+                        });
+            });
+        }
     }
 
     @Override
-    protected void updateHomeStatus(HomeStatus homeStatus) {
-        NAObjectMap<HomeStatusPerson> persons = homeStatus.getPersons();
-        NAObjectMap<HomeStatusModule> modules = homeStatus.getModules();
+    protected void updateHomeStatus(HomeStatus securityStatus) {
+        NAObjectMap<HomeStatusPerson> persons = securityStatus.getPersons();
+        NAObjectMap<HomeStatusModule> modules = securityStatus.getModules();
         handler.getActiveChildren(FeatureArea.SECURITY).forEach(childHandler -> {
             String childId = childHandler.getId();
             persons.getOpt(childId).ifPresentOrElse(personData -> childHandler.setNewData(personData), () -> {
@@ -110,7 +113,7 @@ class SecurityCapability extends RestCapability<SecurityApi> {
             return;
         }
         handler.getActiveChildren(FeatureArea.SECURITY).filter(child -> child.getId().equals(objectId))
-                .forEach(child -> child.setNewData(homeEvent.ignoringForThingUpdate()));
+                .forEach(child -> child.setNewData(homeEvent));
     }
 
     @Override
@@ -230,6 +233,17 @@ class SecurityCapability extends RestCapability<SecurityApi> {
                 handler.expireData();
             } catch (NetatmoException e) {
                 logger.warn("Error changing Presence floodlight mode '{}' : {}", mode, e.getMessage());
+            }
+        });
+    }
+
+    public void changeSirenStatus(String moduleId, SirenStatus status) {
+        getApi().ifPresent(api -> {
+            try {
+                api.changeSirenStatus(handler.getId(), moduleId, status);
+                handler.expireData();
+            } catch (NetatmoException e) {
+                logger.warn("Error changing siren status '{}' : {}", status, e.getMessage());
             }
         });
     }
