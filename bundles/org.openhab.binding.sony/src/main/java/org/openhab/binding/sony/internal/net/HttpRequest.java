@@ -100,12 +100,14 @@ public class HttpRequest implements AutoCloseable {
                 // Sony may report ill-formed content response
                 final MultivaluedMap<String, Object> metadata = response.getMetadata();
                 final List<Object> content = metadata.get("Content-Type");
-                for (int index = 0; index < content.size(); index++) {
-                    if (content.get(index) instanceof String entry) {
-                        content.set(index, entry.replaceAll(".+:", "").trim());
+                if (content != null) {
+                    for (int index = 0; index < content.size(); index++) {
+                        if (content.get(index) instanceof String entry) {
+                            content.set(index, entry.replaceAll(".+:", "").trim());
+                        }
                     }
+                    metadata.put("Content-Type", content);
                 }
-                metadata.put("Content-Type", content);
                 return new HttpResponse(Response.fromResponse(response).replaceAll(metadata).build());
             }
         } catch (ProcessingException | IllegalStateException | IOException e) {
