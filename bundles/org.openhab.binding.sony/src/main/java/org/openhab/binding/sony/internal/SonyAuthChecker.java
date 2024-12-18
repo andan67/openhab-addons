@@ -90,10 +90,6 @@ public class SonyAuthChecker {
         // Attempt the check result without the auth header and return OK_COOKIE is good
         final AccessResult res = callback.checkResult();
         logger.debug("res: '{}'", res.getCode());
-        if (res == null) {
-            logger.debug("checkResult: '{}'", CheckResult.OTHER);
-            return new CheckResult(CheckResult.OTHER, "Check result returned null");
-        }
 
         if (AccessResult.OK.equals(res)) {
             logger.debug("checkResult: '{}'", CheckResult.OK_COOKIE.getCode());

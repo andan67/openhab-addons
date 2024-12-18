@@ -232,7 +232,7 @@ public class HttpResponse {
      */
     public @Nullable URI getLink(final String rel) {
         SonyUtil.validateNotEmpty(rel, "rel cannot be empty");
-        return links == null ? null : links.get(rel);
+        return links.get(rel);
     }
 
     /**

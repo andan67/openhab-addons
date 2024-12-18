@@ -40,7 +40,7 @@ public class UidUtils {
         final String uuid = udn.getIdentifierString();
 
         final String[] uuidParts = uuid.split(":");
-        if (uuidParts == null || uuidParts.length == 0) {
+        if (uuidParts.length == 0) {
             return null;
         } else if (uuidParts.length == 1) {
             return uuidParts[0]; // probably was just "{deviceid}" or "{deviceid}:etc"

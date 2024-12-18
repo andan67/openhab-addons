@@ -10,6 +10,10 @@
     <version>4.3.0-SNAPSHOT</version>
   </parent>
 
+  <properties>
+    <bundle.version>4.3.0</bundle.version>
+  </properties>
+
   <artifactId>org.openhab.binding.sony</artifactId>
 
   <name>openHAB Add-ons :: Bundles :: Sony Binding</name>
@@ -22,34 +26,5 @@
       <scope>provided</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>build-helper-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>add-source</goal>
-            </goals>
-            <phase>generate-sources</phase>
-            <configuration>
-              <sources>
-                <source>src/3rdparty/java</source>
-              </sources>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.mycila</groupId>
-        <artifactId>license-maven-plugin</artifactId>
-        <configuration>
-          <header>${project.basedir}/header.txt</header>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
 
 </project>

@@ -99,9 +99,8 @@ public class SonyAuth {
         String actUrl = null, actVersion = null;
 
         if (accessControlService != null) {
-            actUrl = accessControlService == null ? null : accessControlService.getTransport().getBaseUri().toString();
-            actVersion = accessControlService == null ? null
-                    : accessControlService.getVersion(ScalarWebMethod.ACTREGISTER);
+            actUrl = accessControlService.getTransport().getBaseUri().toString();
+            actVersion = accessControlService.getVersion(ScalarWebMethod.ACTREGISTER);
         }
 
         this.activationUrl = actUrl;

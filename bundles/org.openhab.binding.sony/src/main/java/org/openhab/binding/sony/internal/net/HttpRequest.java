@@ -70,9 +70,6 @@ public class HttpRequest implements AutoCloseable {
 
         // client = ClientBuilder.newClient().property(CONNECT_TIMEOUT, 15000).property(READ_TIMEOUT, 15000);
         client = clientBuilder.connectTimeout(10, TimeUnit.SECONDS).readTimeout(10, TimeUnit.SECONDS).build();
-        if (logger.isDebugEnabled()) {
-            // client.register(new LoggingFilter(new Slf4LoggingAdapter(logger), true));
-        }
     }
 
     /**
