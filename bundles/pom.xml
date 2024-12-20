@@ -500,11 +500,11 @@
   </properties>
 
   <dependencies>
-    <dependency>
+<!--    <dependency>
       <groupId>org.lastnpe.eea</groupId>
       <artifactId>eea-all</artifactId>
       <version>${eea.version}</version>
-    </dependency>
+    </dependency>-->
     <!-- openHAB core -->
     <dependency>
       <groupId>org.openhab.core.bom</groupId>
