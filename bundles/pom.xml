@@ -377,6 +377,7 @@
     <module>org.openhab.binding.siemenshvac</module>
     <module>org.openhab.binding.siemensrds</module>
     <module>org.openhab.binding.sinope</module>
+    <module>org.openhab.binding.skyq</module>
     <module>org.openhab.binding.sleepiq</module>
     <module>org.openhab.binding.smaenergymeter</module>
     <module>org.openhab.binding.smartmeter</module>

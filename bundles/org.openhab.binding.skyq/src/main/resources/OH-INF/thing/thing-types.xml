@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="skyq"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:thing="https://openhab.org/schemas/thing-description/v1.0.0"
+	xsi:schemaLocation="https://openhab.org/schemas/thing-description/v1.0.0 https://openhab.org/schemas/thing-description-1.0.0.xsd">
+
+	<!-- Sample Thing Type -->
+	<thing-type id="skyqreceiver">
+		<label>SkyQ Receiver</label>
+		<description>SkyQ Receiver</description>
+
+		<channel-groups>
+			<channel-group typeId="control" id="control"/>
+			<channel-group typeId="statusChannels" id="statusChannels"/>
+		</channel-groups>
+
+		<config-description uri="thing-type:skyq:config">
+			<parameter name="hostname" type="text" required="true">
+				<context>network-address</context>
+				<label>Hostname</label>
+				<description>The host IP address/name of the receiver</description>
+			</parameter>
+			<parameter name="deviceMacAddress" type="text">
+				<context>network-address</context>
+				<label>MAC Address</label>
+				<description>The MAC address of the receiver</description>
+			</parameter>
+			<parameter name="configurablePresets" type="boolean">
+				<label>Enable Configurable Presets</label>
+				<description>Enable for file based configuration of channel presets</description>
+				<default>true</default>
+				<advanced>false</advanced>
+			</parameter>
+			<parameter name="refreshInterval" type="integer" unit="s">
+				<label>Refresh Interval</label>
+				<description>The interval, in seconds, to refresh the device state (-1 to disable)</description>
+				<default>30</default>
+				<advanced>true</advanced>
+			</parameter>
+			<parameter name="retryInterval" type="integer" unit="s">
+				<label>Retry Polling</label>
+				<description>The time, in seconds, to retry a connection attempt (-1 to disable)</description>
+				<default>60</default>
+				<advanced>true</advanced>
+			</parameter>
+			<parameter name="checkStatusInterval" type="integer" unit="s">
+				<label>Status Check Interval</label>
+				<description>The time, in seconds, to check the device status (-1 to disable)</description>
+				<default>60</default>
+				<advanced>true</advanced>
+			</parameter>
+
+		</config-description>
+	</thing-type>
+
+	<channel-group-type id="control">
+		<label>Receiver Control</label>
+		<description>Control the receiver</description>
+		<channels>
+			<channel id="controlCommand" typeId="controlCommand"/>
+			<channel id="channelPreset" typeId="channelPreset"/>
+			<channel id="channelFavorites" typeId="channelFavorites"/>
+			<channel id="power" typeId="power"/>
+		</channels>
+	</channel-group-type>
+
+	<channel-type id="channelPreset">
+		<item-type>String</item-type>
+		<label>Channel Preset</label>
+		<description>Select channel from preset</description>
+	</channel-type>
+
+	<channel-type id="channelFavorites">
+		<item-type>String</item-type>
+		<label>Favorite Channels</label>
+		<description>Select channel from favorites</description>
+	</channel-type>
+
+	<channel-type id="power">
+		<item-type>Switch</item-type>
+		<label>Power</label>
+		<description>Power ON/OFF</description>
+		<category>switch</category>
+	</channel-type>
+
+	<channel-type id="controlCommand">
+		<item-type>String</item-type>
+		<label>Control Receiver Command</label>
+		<description>Send control command to SkyQ</description>
+		<state pattern="%s">
+			<options>
+				<option value="power">Power</option>
+				<option value="select">Select</option>
+				<option value="backup">Back/Up</option>
+				<option value="dismiss">Dismiss</option>
+				<option value="channelup">Channel up</option>
+				<option value="channeldown">Channel down</option>
+				<option value="interactive">Interactive</option>
+				<option value="sidebar">Sidebar</option>
+				<option value="help">Help</option>
+				<option value="services">Services</option>
+				<option value="search">Search</option>
+				<option value="tvguide">TV guide</option>
+				<option value="home">Home</option>
+				<option value="i">i</option>
+				<option value="text">Text</option>
+				<option value="up">Up</option>
+				<option value="down">Down</option>
+				<option value="left">Left</option>
+				<option value="right">Right</option>
+				<option value="red">Red</option>
+				<option value="green">Green</option>
+				<option value="yellow">Yellow</option>
+				<option value="blue">Blue</option>
+				<option value="0">0</option>
+				<option value="1">1</option>
+				<option value="2">2</option>
+				<option value="3">3</option>
+				<option value="4">4</option>
+				<option value="5">5</option>
+				<option value="6">6</option>
+				<option value="7">7</option>
+				<option value="8">8</option>
+				<option value="9">9</option>
+				<option value="play">Play</option>
+				<option value="pause">Pause</option>
+				<option value="stop">Stop</option>
+				<option value="record">Record</option>
+				<option value="fastforward">Fast forward</option>
+				<option value="rewind">Rewind</option>
+				<option value="boxoffice">Box office</option>
+				<option value="sky">Sky</option>
+			</options>
+		</state>
+	</channel-type>
+
+	<channel-group-type id="statusChannels">
+		<label>Receiver Status</label>
+		<description>Receiver Status</description>
+		<channels>
+			<channel id="currentChannelTitle" typeId="currentChannelTitle"/>
+			<channel id="powerStatus" typeId="powerStatus"/>
+			<channel id="currentTransportState" typeId="currentTransportState"/>
+		</channels>
+	</channel-group-type>
+
+	<channel-type id="currentChannelTitle">
+		<item-type>String</item-type>
+		<label>Current Channel Title</label>
+		<description>Title of current channel</description>
+	</channel-type>
+
+	<channel-type id="currentTransportState">
+		<item-type>String</item-type>
+		<label>Current Transport State</label>
+		<description>State of current transport stream (PLAYING, PAUSE etc)</description>
+	</channel-type>
+
+	<channel-type id="powerStatus">
+		<item-type>String</item-type>
+		<label>Power Status</label>
+		<description>Power status</description>
+		<state pattern="%s">
+			<options>
+				<option value="on">On</option>
+				<option value="off">Off</option>
+				<option value="standby">Standby</option>
+			</options>
+		</state>
+	</channel-type>
+
+
+</thing:thing-descriptions>
